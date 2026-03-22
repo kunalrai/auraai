@@ -8,9 +8,10 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface DashboardProps {
   doctor: Doctor;
+  onAskAura: () => void;
 }
 
-export function DoctorDashboard({ doctor }: DashboardProps) {
+export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('today');
   const [loading, setLoading] = useState(true);
@@ -111,6 +112,26 @@ export function DoctorDashboard({ doctor }: DashboardProps) {
           ))}
         </div>
       </header>
+
+      {/* Quick Ask Aura Bar */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 transition-all group border-blue-500/20"
+        onClick={onAskAura}
+      >
+        <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center border border-blue-500/30 group-hover:scale-110 transition-transform">
+          <MessageSquare className="w-5 h-5 text-blue-400" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-text/90">Ask Aura AI</p>
+          <p className="text-xs text-text-muted">"Schedule a follow-up for Sarah Miller..."</p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(37,99,235,0.3)]">
+          Ask Now
+          <Send className="w-3 h-3" />
+        </div>
+      </motion.div>
 
       <div className="grid gap-6">
         {loading ? (

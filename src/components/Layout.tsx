@@ -1,6 +1,6 @@
 import React from 'react';
 import { Doctor } from '../types.ts';
-import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon } from 'lucide-react';
+import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon, Sparkles, Bot } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -43,6 +43,27 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
         </div>
 
         <nav className="flex flex-col gap-3 flex-1">
+          <div className="mb-4">
+            <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold mb-3 px-4">AI Intelligence</p>
+            <button
+              onClick={() => setView('assistant')}
+              className={cn(
+                "w-full flex items-center gap-4 p-4 rounded-xl font-bold transition-all group relative overflow-hidden",
+                currentView === 'assistant' 
+                  ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] border border-blue-400/30" 
+                  : "bg-blue-600/5 text-blue-400 hover:bg-blue-600/10 border border-blue-500/10"
+              )}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <MessageSquare className={cn("w-5 h-5 relative z-10", currentView === 'assistant' ? "text-white" : "text-blue-400")} />
+              <span className="relative z-10">Ask Aura AI</span>
+              {currentView !== 'assistant' && (
+                <Sparkles className="w-3 h-3 absolute right-4 text-blue-400/50 animate-pulse" />
+              )}
+            </button>
+          </div>
+
+          <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold mb-1 px-4">Management</p>
           <button
             onClick={() => setView('dashboard')}
             className={cn(
@@ -79,18 +100,6 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             <Users className={cn("w-5 h-5 transition-colors", currentView === 'patients' ? "text-blue-400" : "group-hover:text-blue-400")} />
             Patients
           </button>
-          <button
-            onClick={() => setView('assistant')}
-            className={cn(
-              "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group",
-              currentView === 'assistant' 
-                ? "bg-white/10 text-text shadow-lg border border-white/10" 
-                : "text-text-muted hover:text-text hover:bg-white/5"
-            )}
-          >
-            <MessageSquare className={cn("w-5 h-5 transition-colors", currentView === 'assistant' ? "text-blue-400" : "group-hover:text-blue-400")} />
-            AI Assistant
-          </button>
         </nav>
 
         <div className="mt-auto pt-6 border-t border-border flex flex-col gap-4">
@@ -114,10 +123,28 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-12 overflow-auto relative">
+      <main className={cn(
+        "flex-1 p-6 md:p-12 relative flex flex-col",
+        currentView !== 'assistant' && "overflow-auto"
+      )}>
         {/* Subtle background glows for main area */}
         <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-blue-600/5 blur-[120px] rounded-full -z-10" />
         {children}
+
+        {/* Floating AI Button */}
+        {currentView !== 'assistant' && (
+          <button
+            onClick={() => setView('assistant')}
+            className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 text-white rounded-full shadow-[0_0_30px_rgba(37,99,235,0.5)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group z-50 border border-blue-400/30"
+            title="Ask Aura AI"
+          >
+            <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20 group-hover:opacity-40" />
+            <Bot className="w-8 h-8 relative z-10" />
+            <div className="absolute -top-12 right-0 bg-card border border-border px-4 py-2 rounded-xl text-xs font-bold shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+              Need help? Ask Aura
+            </div>
+          </button>
+        )}
       </main>
     </div>
   );

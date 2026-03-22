@@ -69,7 +69,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-12rem)] flex flex-col glass-card overflow-hidden glow">
+    <div className="max-w-4xl mx-auto h-full flex flex-col glass-card overflow-hidden glow">
       <header className="p-6 border-b border-border flex items-center justify-between bg-white/[0.02] backdrop-blur-xl">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-600/20 rounded-2xl flex items-center justify-center border border-blue-500/30">

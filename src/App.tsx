@@ -180,9 +180,12 @@ export default function App() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="h-full"
+            className="flex-1"
           >
-            <DoctorDashboard doctor={doctor!} />
+            <DoctorDashboard 
+              doctor={doctor!} 
+              onAskAura={() => setView('assistant')} 
+            />
           </motion.div>
         )}
         {view === 'assistant' && (
@@ -191,7 +194,7 @@ export default function App() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="h-full"
+            className="flex-1"
           >
             <AIAssistant doctor={doctor!} />
           </motion.div>
@@ -202,7 +205,7 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="h-full"
+            className="flex-1"
           >
             <CalendarView doctor={doctor!} googleToken={googleToken} />
           </motion.div>
@@ -213,7 +216,7 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="h-full"
+            className="flex-1"
           >
             <PatientsView doctor={doctor!} />
           </motion.div>
