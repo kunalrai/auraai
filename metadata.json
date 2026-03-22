@@ -1,0 +1,5 @@
+{
+  "name": "Aura: AI Doctor's Assistant",
+  "description": "An AI-powered appointment booking and reminder system for doctors, acting as an AI employee to manage schedules and automate patient outreach.",
+  "requestFramePermissions": []
+}

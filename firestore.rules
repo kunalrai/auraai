@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: /doctors/{doctorId}
+    // Fields:
+    //   - uid: string (required)
+    //   - name: string (required)
+    //   - specialty: string
+    //   - email: string (required, email format)
+    //   - phone: string
+    //   - availability: map
+    //   - createdAt: timestamp
+    //
+    // Collection: /doctors/{doctorId}/patients/{patientId}
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (email format)
+    //   - phone: string
+    //   - doctorId: string (required)
+    //   - createdAt: timestamp
+    //
+    // Collection: /doctors/{doctorId}/appointments/{appointmentId}
+    // Fields:
+    //   - doctorId: string (required)
+    //   - patientId: string
+    //   - patientName: string (required)
+    //   - patientContact: string
+    //   - startTime: timestamp (required)
+    //   - endTime: timestamp
+    //   - status: string (enum: scheduled, cancelled, completed)
+    //   - reminderType: string (enum: text, phone, email, none)
+    //   - reminderStatus: string (enum: pending, sent, failed)
+    //   - notes: string
+    //   - createdAt: timestamp
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "ikunalRai@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidDoctor(data) {
+      return data.keys().hasAll(['uid', 'name', 'email']) &&
+             data.uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email);
+    }
+
+    function isValidPatient(data) {
+      return data.keys().hasAll(['name', 'doctorId']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.doctorId is string;
+    }
+
+    function isValidAppointment(data) {
+      return data.keys().hasAll(['doctorId', 'startTime', 'patientName', 'status']) &&
+             data.doctorId is string &&
+             data.startTime is timestamp &&
+             data.patientName is string && data.patientName.size() > 0 &&
+             data.status in ['scheduled', 'cancelled', 'completed'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /doctors/{doctorId} {
+      allow read: if isOwner(doctorId) || isAdmin();
+      allow create: if isOwner(doctorId) && isValidDoctor(request.resource.data);
+      allow update: if isOwner(doctorId) && isValidDoctor(request.resource.data);
+      allow delete: if isAdmin();
+
+      match /patients/{patientId} {
+        allow read: if isOwner(doctorId) || isAdmin();
+        allow create: if isOwner(doctorId) && isValidPatient(request.resource.data);
+        allow update: if isOwner(doctorId) && isValidPatient(request.resource.data);
+        allow delete: if isOwner(doctorId) || isAdmin();
+      }
+
+      match /appointments/{appointmentId} {
+        allow read: if isOwner(doctorId) || isAdmin();
+        allow create: if isOwner(doctorId) && isValidAppointment(request.resource.data);
+        allow update: if isOwner(doctorId) && isValidAppointment(request.resource.data);
+        allow delete: if isOwner(doctorId) || isAdmin();
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

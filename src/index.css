@@ -1,0 +1,66 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --color-bg: #030303;
+  --color-card: #0a0a0a;
+  --color-accent: #3b82f6;
+  --color-accent-glow: rgba(59, 130, 246, 0.15);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text: #ffffff;
+  --color-text-muted: #888888;
+  --color-glass-bg: rgba(255, 255, 255, 0.03);
+  --color-glass-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --color-gradient-start: #ffffff;
+  --color-gradient-end: #888888;
+}
+
+.light {
+  --color-bg: #f8fafc;
+  --color-card: #ffffff;
+  --color-accent: #2563eb;
+  --color-accent-glow: rgba(37, 99, 235, 0.05);
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-glass-bg: rgba(255, 255, 255, 0.7);
+  --color-glass-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+  --color-gradient-start: #0f172a;
+  --color-gradient-end: #64748b;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.glass {
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+.glass-card {
+  background: var(--color-glass-card-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+}
+
+.glow {
+  box-shadow: 0 0 20px var(--color-accent-glow);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

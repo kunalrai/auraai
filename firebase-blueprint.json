@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "Doctor": {
+      "title": "Doctor",
+      "description": "Doctor profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string" },
+        "specialty": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "availability": {
+          "type": "object",
+          "description": "Weekly availability slots"
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "Patient": {
+      "title": "Patient",
+      "description": "Patient information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "doctorId": { "type": "string", "description": "The doctor this patient is associated with" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "doctorId"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Scheduled medical appointment",
+      "type": "object",
+      "properties": {
+        "doctorId": { "type": "string" },
+        "patientId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "patientContact": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["scheduled", "cancelled", "completed"] },
+        "reminderType": { "type": "string", "enum": ["text", "phone", "email", "none"] },
+        "reminderStatus": { "type": "string", "enum": ["pending", "sent", "failed"] },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["doctorId", "startTime", "patientName", "status"]
+    }
+  },
+  "firestore": {
+    "/doctors/{doctorId}": {
+      "schema": "Doctor",
+      "description": "Doctor profiles"
+    },
+    "/doctors/{doctorId}/patients/{patientId}": {
+      "schema": "Patient",
+      "description": "Patients belonging to a doctor"
+    },
+    "/doctors/{doctorId}/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Appointments for a doctor"
+    }
+  }
+}
