@@ -7,6 +7,7 @@ import { motion } from 'motion/react';
 interface CalendarViewProps {
   doctor: Doctor;
   googleToken: string | null;
+  onReauth: () => void;
 }
 
 interface GoogleEvent {
@@ -17,7 +18,7 @@ interface GoogleEvent {
   htmlLink: string;
 }
 
-export function CalendarView({ doctor, googleToken }: CalendarViewProps) {
+export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [events, setEvents] = useState<GoogleEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,17 +42,23 @@ export function CalendarView({ doctor, googleToken }: CalendarViewProps) {
       );
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Unauthorized. Please sign in again.');
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('auth_expired');
         }
-        throw new Error('Failed to fetch Google Calendar events');
+        const body = await response.text().catch(() => '');
+        throw new Error(`Failed to fetch Google Calendar events (${response.status})${body ? `: ${body}` : ''}`);
       }
 
       const data = await response.json();
       setEvents(data.items || []);
     } catch (err) {
       console.error('Calendar Error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err instanceof Error && err.message === 'auth_expired') {
+        onReauth();
+        setError('Your Google session expired. Please reconnect.');
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      }
     } finally {
       setLoading(false);
     }

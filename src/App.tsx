@@ -46,6 +46,11 @@ export default function App() {
     localStorage.removeItem('google_token');
   };
 
+  const handleGoogleReauth = () => {
+    setGoogleToken(null);
+    localStorage.removeItem('google_token');
+  };
+
   useEffect(() => {
     console.log("App: Setting up onAuthStateChanged listener");
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -207,7 +212,7 @@ export default function App() {
             exit={{ opacity: 0, y: -20 }}
             className="flex-1"
           >
-            <CalendarView doctor={doctor!} googleToken={googleToken} />
+            <CalendarView doctor={doctor!} googleToken={googleToken} onReauth={handleGoogleReauth} />
           </motion.div>
         )}
         {view === 'patients' && (
