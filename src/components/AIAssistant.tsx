@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { collection, addDoc, Timestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import { Doctor, Appointment, ChatMessage } from '../types.ts';
-import { chatWithAssistant, parseBookingRequest, BookingDetails } from '../services/geminiService.ts';
+import { parseBookingRequest, BookingDetails } from '../services/geminiService.ts';
 import { Send, Bot, User, Sparkles, Calendar, Loader2, AlertTriangle, CheckCircle, XCircle, Paperclip, X, Image } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, isTomorrow } from 'date-fns';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
 interface AssistantProps {
@@ -24,9 +24,8 @@ export function AIAssistant({ doctor }: AssistantProps) {
   const [conflictWith, setConflictWith] = useState<Appointment | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const aiModel = useQuery(api.settings.getAiModel, { userId: doctor.uid ?? "" });
   const generateUploadUrl = useMutation(api.settings.generateUploadUrl);
-  const recordUsage = useMutation(api.tokenUsage.recordUsage);
+  const chatAction = useAction(api.ai.chat);
 
   const [selectedFile, setSelectedFile] = useState<{ name: string; mimeType: string; data: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -216,7 +215,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
     try {
       const currentDateTime = new Date().toISOString();
       
-      const booking = await parseBookingRequest(userMessage, currentDateTime, aiModel ?? undefined);
+      const booking = await parseBookingRequest(userMessage, currentDateTime);
       
       if (booking) {
         const availWarning = checkAvailability(booking);
@@ -244,23 +243,11 @@ export function AIAssistant({ doctor }: AssistantProps) {
           }
         }
       } else {
-        const { text: responseText, usage } = await chatWithAssistant(
-          [...messages, { role: 'user', content: userMessage }],
-          currentDateTime,
-          doctor.name,
-          aiModel ?? undefined,
-          selectedFile ?? undefined
-        );
-        setMessages(prev => [...prev, { role: 'assistant', content: responseText }]);
-        if (usage && doctor.uid) {
-          recordUsage({
-            userId: doctor.uid,
-            model: aiModel ?? "gemini-3-flash-preview",
-            promptTokens: usage.promptTokens,
-            completionTokens: usage.completionTokens,
-            totalTokens: usage.totalTokens,
-          });
-        }
+        const result = await chatAction({
+          messages: [...messages, { role: 'user', content: userMessage }],
+          userId: doctor.uid ?? "",
+        });
+        setMessages(prev => [...prev, { role: 'assistant', content: result.text }]);
       }
     } catch (error) {
       console.error("Assistant error:", error);

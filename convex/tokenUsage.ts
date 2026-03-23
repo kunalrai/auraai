@@ -1,5 +1,25 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+
+export const recordUsageInternal = internalMutation({
+  args: {
+    userId: v.string(),
+    model: v.string(),
+    promptTokens: v.number(),
+    completionTokens: v.number(),
+    totalTokens: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("tokenUsage", {
+      userId: args.userId,
+      model: args.model,
+      promptTokens: args.promptTokens,
+      completionTokens: args.completionTokens,
+      totalTokens: args.totalTokens,
+      createdAt: Date.now(),
+    });
+  },
+});
 
 export const recordUsage = mutation({
   args: {
