@@ -25,6 +25,17 @@ export interface TextPart {
 
 export type Part = TextPart | ImagePart;
 
+export interface UsageMetadata {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface ChatResponse {
+  text: string;
+  usage?: UsageMetadata;
+}
+
 const DEFAULT_MODEL = "gemini-3-flash-preview";
 
 export const parseBookingRequest = async (prompt: string, currentDateTime: string, model: string = DEFAULT_MODEL): Promise<BookingDetails | null> => {
@@ -102,5 +113,11 @@ export const chatWithAssistant = async (
     }
   });
 
-  return response.text ?? "";
+  const usage = response.usageMetadata ? {
+    promptTokens: response.usageMetadata.promptTokenCount ?? 0,
+    completionTokens: response.usageMetadata.candidatesTokenCount ?? 0,
+    totalTokens: response.usageMetadata.totalTokenCount ?? 0,
+  } : undefined;
+
+  return { text: response.text ?? "", usage };
 };

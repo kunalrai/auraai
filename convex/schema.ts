@@ -39,6 +39,15 @@ export default defineSchema({
     aiModel: v.string(),
   }).index("by_user", ["userId"]),
 
+  tokenUsage: defineTable({
+    userId: v.string(),
+    model: v.string(),
+    promptTokens: v.number(),
+    completionTokens: v.number(),
+    totalTokens: v.number(),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]).index("by_user_created", ["userId", "createdAt"]),
+
   skills: defineTable({
     agentName: v.string(), // "Riya" | "Michel" | "*" (global)
     type: v.string(),      // "wakeup" | "protocol" | "onboarding"

@@ -3,7 +3,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import { Doctor } from '../types.ts';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Phone, Stethoscope, Building2, CheckCircle, Clock, Cpu } from 'lucide-react';
+import { User, Phone, Stethoscope, Building2, CheckCircle, Clock, Cpu, Zap } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,9 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
   const saveAiModel = useMutation(api.settings.saveAiModel);
   const [modelInput, setModelInput] = useState('');
   const [savingModel, setSavingModel] = useState(false);
+
+  const usageSummary = useQuery(api.tokenUsage.getSummary, { userId: doctor.uid });
+  const usageHistory = useQuery(api.tokenUsage.getHistory, { userId: doctor.uid });
 
   React.useEffect(() => {
     if (aiModel !== undefined) {
@@ -230,6 +233,73 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
             {savingAvail ? 'Saving...' : 'Save Availability'}
           </button>
         </div>
+      </motion.div>
+
+      {/* Token Usage */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="glass-card p-8 space-y-6"
+      >
+        <h3 className="text-lg font-display font-bold text-foreground/90 flex items-center gap-3">
+          <Zap className="w-5 h-5 text-yellow-400" />
+          AI Token Usage
+        </h3>
+
+        {usageSummary ? (
+          <>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white/5 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{usageSummary.totalToday.toLocaleString()}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Tokens Today</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{usageSummary.totalMonth.toLocaleString()}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Tokens This Month</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{usageSummary.totalAll.toLocaleString()}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Total All Time</p>
+              </div>
+            </div>
+
+            {usageSummary.byModel.length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">By Model</p>
+                <div className="space-y-1">
+                  {usageSummary.byModel.map(m => (
+                    <div key={m.model} className="flex justify-between items-center text-sm">
+                      <code className="text-muted-foreground text-xs">{m.model}</code>
+                      <span className="text-foreground font-bold">{m.tokens.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {usageHistory && usageHistory.length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Recent Requests</p>
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {usageHistory.map((r, i) => (
+                    <div key={i} className="flex justify-between items-center text-xs">
+                      <div>
+                        <code className="text-muted-foreground">{r.model}</code>
+                        <span className="text-muted-foreground/50 ml-2">
+                          {new Date(r.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <span className="text-foreground font-bold">{r.totalTokens.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">No usage data yet. Start a conversation with Aura to see your token consumption.</p>
+        )}
       </motion.div>
 
       {/* AI Model */}

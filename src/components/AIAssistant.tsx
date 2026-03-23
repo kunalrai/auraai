@@ -26,6 +26,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
 
   const aiModel = useQuery(api.settings.getAiModel, { userId: doctor.uid ?? "" });
   const generateUploadUrl = useMutation(api.settings.generateUploadUrl);
+  const recordUsage = useMutation(api.tokenUsage.recordUsage);
 
   const [selectedFile, setSelectedFile] = useState<{ name: string; mimeType: string; data: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -243,14 +244,23 @@ export function AIAssistant({ doctor }: AssistantProps) {
           }
         }
       } else {
-        const response = await chatWithAssistant(
+        const { text: responseText, usage } = await chatWithAssistant(
           [...messages, { role: 'user', content: userMessage }],
           currentDateTime,
           doctor.name,
           aiModel ?? undefined,
           selectedFile ?? undefined
         );
-        setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: responseText }]);
+        if (usage && doctor.uid) {
+          recordUsage({
+            userId: doctor.uid,
+            model: aiModel ?? "gemini-3-flash-preview",
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+            totalTokens: usage.totalTokens,
+          });
+        }
       }
     } catch (error) {
       console.error("Assistant error:", error);
