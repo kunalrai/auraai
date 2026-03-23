@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { motion, AnimatePresence } from 'motion/react';
-import { Radar, Bot, User, CheckCircle2, Circle, Clock, Zap, ChevronRight, MessageSquare, X, GitBranch, Calendar, Sun, Moon } from 'lucide-react';
+import { Radar, Bot, User, CheckCircle2, Circle, Clock, Zap, ChevronRight, MessageSquare, X, GitBranch, Calendar, Sun, Moon, LayoutDashboard } from 'lucide-react';
 
 // Full Tailwind class strings — must be complete so Tailwind doesn't purge them
 const COLOR_MAP: Record<string, {
@@ -165,6 +165,23 @@ export function MissionHQ() {
               <>
                 <Radar className={`w-5 h-5 transition-colors ${isActive ? 'text-purple-400' : 'group-hover:text-purple-400'}`} />
                 Mission HQ
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            to="/overview"
+            className={({ isActive }) =>
+              `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${
+                isActive
+                  ? 'bg-white/10 text-text shadow-lg border border-white/10'
+                  : 'text-text-muted hover:text-text hover:bg-white/5'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <LayoutDashboard className={`w-5 h-5 transition-colors ${isActive ? 'text-purple-400' : 'group-hover:text-purple-400'}`} />
+                Overview
               </>
             )}
           </NavLink>

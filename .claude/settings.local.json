@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npx convex:*)",
       "Bash(npx convex@1.34.0 dev --once)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }

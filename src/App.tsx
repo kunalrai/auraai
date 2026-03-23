@@ -12,6 +12,7 @@ import { PatientsView } from './components/PatientsView.tsx';
 import { SettingsView } from './components/SettingsView.tsx';
 import { CollabDashboard } from './components/CollabDashboard.tsx';
 import { MissionHQ } from './components/MissionHQ.tsx';
+import { OverviewDashboard } from './components/OverviewDashboard.tsx';
 import { LogIn, Calendar, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
@@ -25,6 +26,9 @@ export default function App() {
   }
   if (location.pathname === '/collab') {
     return <CollabDashboard />;
+  }
+  if (location.pathname === '/overview') {
+    return <OverviewDashboard />;
   }
 
   const [user, setUser] = useState<User | null>(null);

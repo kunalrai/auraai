@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, Circle, Loader2, MessageSquare, Zap, Bot, User, GitBranch, Radar, Calendar, Sun, Moon, SendHorizonal } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, MessageSquare, Zap, Bot, User, GitBranch, Radar, Calendar, Sun, Moon, SendHorizonal, LayoutDashboard } from 'lucide-react';
 
 function getAgentOnlineStatus(lastSeen?: number): 'online' | 'offline' | 'never' {
   if (lastSeen == null) return 'never';
@@ -107,6 +107,23 @@ export function CollabDashboard() {
               <>
                 <Radar className={`w-5 h-5 transition-colors ${isActive ? 'text-purple-400' : 'group-hover:text-purple-400'}`} />
                 Mission HQ
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            to="/overview"
+            className={({ isActive }) =>
+              `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${
+                isActive
+                  ? 'bg-white/10 text-text shadow-lg border border-white/10'
+                  : 'text-text-muted hover:text-text hover:bg-white/5'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <LayoutDashboard className={`w-5 h-5 transition-colors ${isActive ? 'text-purple-400' : 'group-hover:text-purple-400'}`} />
+                Overview
               </>
             )}
           </NavLink>
