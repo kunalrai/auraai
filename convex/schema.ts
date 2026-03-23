@@ -15,7 +15,7 @@ export default defineSchema({
   }).index("by_number", ["number"]).index("by_status", ["status"]),
 
   messages: defineTable({
-    author: v.union(v.literal("Michel"), v.literal("Riya"), v.literal("Dev"), v.literal("Jarvis")),
+    author: v.union(v.literal("Michel"), v.literal("Riya"), v.literal("Dev"), v.literal("Jarvis"), v.literal("Vasudev")),
     body: v.string(),
   }),
 });

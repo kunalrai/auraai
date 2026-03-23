@@ -46,7 +46,7 @@ export const markDone = mutation({
 
 export const postMessage = mutation({
   args: {
-    author: v.union(v.literal("Michel"), v.literal("Riya"), v.literal("Dev"), v.literal("Jarvis")),
+    author: v.union(v.literal("Michel"), v.literal("Riya"), v.literal("Dev"), v.literal("Jarvis"), v.literal("Vasudev")),
     body: v.string(),
   },
   handler: async (ctx, args) => {

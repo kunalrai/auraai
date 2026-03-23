@@ -134,7 +134,7 @@ export function MissionHQ() {
             </div>
             <div>
               <p className="font-display font-bold text-text/90">Dev</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-green-400">AI Employee</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-green-400">Frontend Developer</p>
             </div>
             <div className="ml-auto">
               <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border bg-white/5 text-text-muted border-border">
@@ -171,7 +171,7 @@ export function MissionHQ() {
                   {selectedAgent}
                 </h4>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                  {selectedAgent === 'Michel' ? 'Feature Planner' : selectedAgent === 'Riya' ? 'Frontend Developer' : 'AI Employee'}
+                  {selectedAgent === 'Michel' ? 'Feature Planner' : selectedAgent === 'Riya' ? 'Frontend Developer' : 'Frontend Developer'}
                 </span>
               </div>
 
