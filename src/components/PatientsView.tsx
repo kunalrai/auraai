@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, orderBy, Timestamp, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, Timestamp, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import { Doctor, Patient, Appointment } from '../types.ts';
 import { User, Phone, Mail, Plus, Trash2, MessageSquare, PhoneCall, Send, X, Search, History, ChevronDown, Clock, Users } from 'lucide-react';
@@ -21,6 +21,10 @@ export function PatientsView({ doctor }: PatientsViewProps) {
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
+  const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
+  const [notesDirty, setNotesDirty] = useState<Set<string>>(new Set());
+  const [notesSavedAt, setNotesSavedAt] = useState<Record<string, Date>>({});
+  const [savingNotes, setSavingNotes] = useState<Set<string>>(new Set());
 
   const toggleHistory = (id: string) => {
     setExpandedHistory(prev => {
@@ -38,6 +42,14 @@ export function PatientsView({ doctor }: PatientsViewProps) {
     });
     return () => unsub();
   }, [doctor.uid]);
+
+  useEffect(() => {
+    const drafts: Record<string, string> = {};
+    patients.forEach(p => {
+      drafts[p.id] = p.notes ?? '';
+    });
+    setNotesDraft(drafts);
+  }, [patients]);
 
   useEffect(() => {
     if (!doctor?.uid) return;
@@ -123,6 +135,19 @@ export function PatientsView({ doctor }: PatientsViewProps) {
 
     setSendingReminder(patient.id);
     setTimeout(() => setSendingReminder(null), 2000);
+  };
+
+  const saveNotes = async (patient: Patient) => {
+    setSavingNotes(prev => { const n = new Set(prev); n.add(patient.id); return n; });
+    try {
+      await updateDoc(doc(db, 'doctors', doctor.uid, 'patients', patient.id), { notes: notesDraft[patient.id] ?? '' });
+      setNotesDirty(prev => { const n = new Set(prev); n.delete(patient.id); return n; });
+      setNotesSavedAt(prev => ({ ...prev, [patient.id]: new Date() }));
+    } catch (error) {
+      console.error('Failed to save notes:', error);
+    } finally {
+      setSavingNotes(prev => { const n = new Set(prev); n.delete(patient.id); return n; });
+    }
   };
 
   const filteredPatients = patients.filter(p => {
@@ -383,6 +408,37 @@ export function PatientsView({ doctor }: PatientsViewProps) {
                         </motion.div>
                       )}
                     </AnimatePresence>
+
+                    {/* Clinical Notes */}
+                    <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Clinical Notes</span>
+                        {notesSavedAt[patient.id] && (
+                          <span className="text-[9px] text-text-muted">Saved {format(notesSavedAt[patient.id], 'p')}</span>
+                        )}
+                      </div>
+                      <textarea
+                        value={notesDraft[patient.id] ?? ''}
+                        onChange={(e) => {
+                          setNotesDraft(prev => ({ ...prev, [patient.id]: e.target.value }));
+                          if (!notesDirty.has(patient.id)) {
+                            setNotesDirty(prev => { const n = new Set(prev); n.add(patient.id); return n; });
+                          }
+                        }}
+                        rows={3}
+                        placeholder="Add clinical notes..."
+                        className="w-full p-3 bg-white/[0.03] border border-border/50 rounded-xl text-xs text-text/80 placeholder-text-muted/40 focus:outline-none focus:border-blue-500/30 focus:bg-white/[0.05] transition-all resize-none"
+                      />
+                      {notesDirty.has(patient.id) && (
+                        <button
+                          onClick={() => saveNotes(patient)}
+                          disabled={savingNotes.has(patient.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-400 text-[10px] font-bold uppercase tracking-widest hover:bg-blue-500/30 transition-all disabled:opacity-50"
+                        >
+                          {savingNotes.has(patient.id) ? 'Saving...' : 'Save Notes'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })()}

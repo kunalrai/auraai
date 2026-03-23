@@ -18,6 +18,7 @@ export interface Patient {
   phone?: string;
   doctorId: string;
   createdAt: Timestamp;
+  notes?: string;
 }
 
 export interface Appointment {

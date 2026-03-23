@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy, Timestamp, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import { Doctor, Appointment } from '../types.ts';
-import { format, isToday, isTomorrow, startOfDay, endOfDay } from 'date-fns';
-import { Calendar, Clock, User, Phone, Mail, CheckCircle, XCircle, Trash2, Filter, MessageSquare, PhoneCall, Send, Pencil, X, ChevronDown, FileText, Users, Bell, Square, CheckSquare } from 'lucide-react';
+import { format, isToday, isTomorrow, startOfDay, endOfDay, getDay, startOfWeek, differenceInDays } from 'date-fns';
+import { Calendar, Clock, User, Phone, Mail, CheckCircle, XCircle, Trash2, Filter, MessageSquare, PhoneCall, Send, Pencil, X, ChevronDown, FileText, Users, Bell, Square, CheckSquare, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion, AnimatePresence, animate } from 'motion/react';
 import { generateReminderMessage } from '../services/geminiService.ts';
 
@@ -217,6 +217,44 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
   const weekStart = startOfDay(new Date(Date.now() - 6 * 86400000));
   const remindersSent = allAppointments.filter(a => a.reminderStatus === 'sent' && a.startTime.toDate() >= weekStart).length;
 
+  // Weekly analytics
+  const now = new Date();
+  const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const lastWeekStart = startOfWeek(new Date(now.getTime() - 7 * 86400000), { weekStartsOn: 1 });
+  const thisWeekEnd = endOfDay(new Date(thisWeekStart.getTime() + 6 * 86400000));
+
+  const thisWeekApps = allAppointments.filter(a => {
+    const d = a.startTime.toDate();
+    return d >= thisWeekStart && d <= thisWeekEnd;
+  });
+  const lastWeekApps = allAppointments.filter(a => {
+    const d = a.startTime.toDate();
+    return d >= lastWeekStart && d < thisWeekStart;
+  });
+
+  const weeklyTotal = thisWeekApps.length;
+  const weeklyCompleted = thisWeekApps.filter(a => a.status === 'completed').length;
+  const weeklyCancelled = thisWeekApps.filter(a => a.status === 'cancelled').length;
+  const weeklyCancellationRate = weeklyTotal > 0 ? Math.round((weeklyCancelled / weeklyTotal) * 100) : 0;
+
+  // Busiest day this week
+  const dayCounts: Record<number, number> = {};
+  thisWeekApps.forEach(a => {
+    const day = getDay(a.startTime.toDate());
+    dayCounts[day] = (dayCounts[day] || 0) + 1;
+  });
+  const busiestDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0];
+  const busiestDayName = busiestDay ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][parseInt(busiestDay[0])] : '-';
+
+  // Trend comparisons
+  const lastWeekTotal = lastWeekApps.length;
+  const totalTrend = weeklyTotal - lastWeekTotal;
+  const lastWeekCompleted = lastWeekApps.filter(a => a.status === 'completed').length;
+  const completedTrend = weeklyCompleted - lastWeekCompleted;
+  const lastWeekCancelled = lastWeekApps.filter(a => a.status === 'cancelled').length;
+  const lastWeekRate = lastWeekTotal > 0 ? Math.round((lastWeekCancelled / lastWeekTotal) * 100) : 0;
+  const rateTrend = weeklyCancellationRate - lastWeekRate;
+
   return (
     <div className="max-w-6xl mx-auto space-y-12">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -250,6 +288,89 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
         </div>
         </div>
       </header>
+
+      {/* Weekly Analytics Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+      >
+        {/* Weekly Total */}
+        <div className="glass-card p-5 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">This Week</span>
+            <Calendar className="w-4 h-4 text-blue-400" />
+          </div>
+          <p className="text-3xl font-display font-bold text-text">
+            <AnimatedNumber value={weeklyTotal} />
+          </p>
+          <div className="flex items-center gap-1.5">
+            {totalTrend !== 0 && (
+              totalTrend > 0
+                ? <TrendingUp className="w-3 h-3 text-green-400" />
+                : <TrendingDown className="w-3 h-3 text-red-400" />
+            )}
+            <span className={`text-[10px] font-bold ${totalTrend > 0 ? 'text-green-400' : totalTrend < 0 ? 'text-red-400' : 'text-text-muted'}`}>
+              {totalTrend > 0 ? '+' : ''}{totalTrend} vs last week
+            </span>
+          </div>
+        </div>
+
+        {/* Weekly Completed */}
+        <div className="glass-card p-5 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Completed</span>
+            <CheckCircle className="w-4 h-4 text-green-400" />
+          </div>
+          <p className="text-3xl font-display font-bold text-text">
+            <AnimatedNumber value={weeklyCompleted} />
+          </p>
+          <div className="flex items-center gap-1.5">
+            {completedTrend !== 0 && (
+              completedTrend > 0
+                ? <TrendingUp className="w-3 h-3 text-green-400" />
+                : <TrendingDown className="w-3 h-3 text-red-400" />
+            )}
+            <span className={`text-[10px] font-bold ${completedTrend > 0 ? 'text-green-400' : completedTrend < 0 ? 'text-red-400' : 'text-text-muted'}`}>
+              {completedTrend > 0 ? '+' : ''}{completedTrend} vs last week
+            </span>
+          </div>
+        </div>
+
+        {/* Cancellation Rate */}
+        <div className="glass-card p-5 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Cancellation Rate</span>
+            <XCircle className="w-4 h-4 text-red-400" />
+          </div>
+          <p className="text-3xl font-display font-bold text-text">
+            <AnimatedNumber value={weeklyCancellationRate} /><span className="text-xl">%</span>
+          </p>
+          <div className="flex items-center gap-1.5">
+            {rateTrend !== 0 && (
+              rateTrend < 0
+                ? <TrendingUp className="w-3 h-3 text-green-400" />
+                : <TrendingDown className="w-3 h-3 text-red-400" />
+            )}
+            <span className={`text-[10px] font-bold ${rateTrend < 0 ? 'text-green-400' : rateTrend > 0 ? 'text-red-400' : 'text-text-muted'}`}>
+              {rateTrend > 0 ? '+' : ''}{rateTrend}% vs last week
+            </span>
+          </div>
+        </div>
+
+        {/* Busiest Day */}
+        <div className="glass-card p-5 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Busiest Day</span>
+            <Users className="w-4 h-4 text-purple-400" />
+          </div>
+          <p className="text-3xl font-display font-bold text-text">{busiestDayName}</p>
+          <p className="text-xs text-text-muted">
+            {busiestDay ? `${busiestDay[1]} appointments` : 'No data'}
+          </p>
+        </div>
+      </motion.div>
 
       {/* Stats Row */}
       <motion.div

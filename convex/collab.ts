@@ -43,11 +43,38 @@ export const markDone = mutation({
     const goal = await ctx.db
       .query("goals")
       .withIndex("by_number", (q) => q.eq("number", args.goalNumber))
-      .unique();
+      .first();
     if (!goal) throw new Error(`Goal ${args.goalNumber} not found`);
     await ctx.db.patch(goal._id, { status: "DONE", completedAt: Date.now() });
     // Trigger Michel to activate the next goal
     await ctx.scheduler.runAfter(0, internal.collab.activateNext, {});
+  },
+});
+
+export const reassignGoal = mutation({
+  args: { goalNumber: v.number(), assignee: v.string() },
+  handler: async (ctx, args) => {
+    const goal = await ctx.db
+      .query("goals")
+      .withIndex("by_number", (q) => q.eq("number", args.goalNumber))
+      .first();
+    if (!goal) throw new Error(`Goal ${args.goalNumber} not found`);
+    await ctx.db.patch(goal._id, { assignee: args.assignee });
+  },
+});
+
+export const markDoneById = mutation({
+  args: { id: v.id("goals") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { status: "DONE", completedAt: Date.now() });
+    await ctx.scheduler.runAfter(0, internal.collab.activateNext, {});
+  },
+});
+
+export const deleteGoalById = mutation({
+  args: { id: v.id("goals") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
   },
 });
 
@@ -120,6 +147,25 @@ export const claimGoal = mutation({
   },
 });
 
+export const claimMyGoal = mutation({
+  args: { goalNumber: v.number(), worker: v.string() },
+  handler: async (ctx, args) => {
+    const goal = await ctx.db
+      .query("goals")
+      .withIndex("by_number", (q) => q.eq("number", args.goalNumber))
+      .unique();
+    if (!goal) throw new Error(`Goal ${args.goalNumber} not found`);
+    if (goal.status !== "QUEUED") {
+      throw new Error(`Goal ${args.goalNumber} is not QUEUED (current: ${goal.status})`);
+    }
+    const assignee = goal.assignee ?? "Riya";
+    if (assignee !== args.worker) {
+      throw new Error(`Goal ${args.goalNumber} is assigned to ${assignee}, not ${args.worker}`);
+    }
+    await ctx.db.patch(goal._id, { status: "WORKING", worker: args.worker });
+  },
+});
+
 export const releaseGoal = mutation({
   args: { goalNumber: v.number(), worker: v.string() },
   handler: async (ctx, args) => {
@@ -130,6 +176,18 @@ export const releaseGoal = mutation({
     if (!goal) throw new Error(`Goal ${args.goalNumber} not found`);
     if (goal.worker !== args.worker) return;
     await ctx.db.patch(goal._id, { status: "ACTIVE", worker: undefined });
+  },
+});
+
+export const reassignGoalToMe = mutation({
+  args: { goalNumber: v.number(), assignee: v.string() },
+  handler: async (ctx, args) => {
+    const goal = await ctx.db
+      .query("goals")
+      .withIndex("by_number", (q) => q.eq("number", args.goalNumber))
+      .unique();
+    if (!goal) throw new Error(`Goal ${args.goalNumber} not found`);
+    await ctx.db.patch(goal._id, { assignee: args.assignee });
   },
 });
 
@@ -163,6 +221,31 @@ export const updateAgentRole = mutation({
   },
 });
 
+export const heartbeat = mutation({
+  args: { name: v.string() },
+  handler: async (ctx, args) => {
+    const agent = await ctx.db
+      .query("agents")
+      .filter((q) => q.eq(q.field("name"), args.name))
+      .first();
+    if (!agent) return;
+    await ctx.db.patch(agent._id, { lastSeen: Date.now() });
+  },
+});
+
+export const getAgentStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const agents = await ctx.db.query("agents").take(100);
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    return agents.map((agent) => ({
+      ...agent,
+      isOnline: agent.lastSeen != null && now - agent.lastSeen < fiveMinutes,
+    }));
+  },
+});
+
 export const seedAgents = mutation({
   args: {},
   handler: async (ctx) => {
@@ -187,7 +270,7 @@ export const resetGoalToQueued = mutation({
     const goal = await ctx.db
       .query("goals")
       .withIndex("by_number", (q) => q.eq("number", args.goalNumber))
-      .unique();
+      .first();
     if (!goal) throw new Error(`Goal ${args.goalNumber} not found`);
     await ctx.db.patch(goal._id, { status: "QUEUED", completedAt: undefined });
   },
@@ -276,9 +359,19 @@ Welcome to the Aura AI team.
 ## 3. Your Role
 - Check which agent you are and your assigned role via collab:listAgents
 - Watch the goal queue for tasks assigned to you
-- Post updates back to the message feed when done
+- When Michel activates a goal, claim it — no need to ask
 
-Any questions — post them in the Collab Dashboard. Michel is watching.`,
+## 4. Workflow (ALWAYS follow this)
+Before starting any goal:
+1. Run collab:claimMyGoal (for QUEUED) or collab:claimGoal (for ACTIVE) to set status to WORKING
+2. Post a message: npx convex run collab:postMessage '{"author": "YourName", "body": "Starting goal #N: [title]"}'
+
+After completing any goal:
+1. Run collab:markDone to set status to DONE
+2. Post a message: npx convex run collab:postMessage '{"author": "YourName", "body": "Goal #N complete: [title]"}'
+3. Check for next QUEUED goal assigned to you and repeat
+
+Keep the board updated at all times. Never leave a goal stuck in a stale status.`,
       },
       {
         slug: "offboarding",
@@ -328,6 +421,29 @@ Any permanent roster changes should be raised as a goal so Michel can action the
 });
 
 // ── Internal Mutations (Michel logic) ─────────────────────────────────────
+
+export const riyaCheckGoals = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const active = await ctx.db
+      .query("goals")
+      .withIndex("by_status", (q) => q.eq("status", "ACTIVE"))
+      .first();
+    
+    if (!active) return;
+    
+    const assignee = active.assignee ?? "Riya";
+    if (assignee !== "Riya") return;
+    
+    const lastMsg = await ctx.db.query("messages").order("desc").first();
+    if (lastMsg?.body.includes("Riya, you have an active goal")) return;
+    
+    await ctx.db.insert("messages", {
+      author: "Michel",
+      body: `Riya, you have an active goal: **${active.title}**. ${active.spec} Ship it!`,
+    });
+  },
+});
 
 export const activateNext = internalMutation({
   args: {},

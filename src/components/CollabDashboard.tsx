@@ -5,6 +5,11 @@ import { api } from '../../convex/_generated/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Circle, Loader2, MessageSquare, Zap, Bot, User, GitBranch, Radar, Calendar, Sun, Moon, SendHorizonal } from 'lucide-react';
 
+function getAgentOnlineStatus(lastSeen?: number): 'online' | 'offline' | 'never' {
+  if (lastSeen == null) return 'never';
+  return Date.now() - lastSeen < 5 * 60 * 1000 ? 'online' : 'offline';
+}
+
 const STATUS_CONFIG = {
   DONE:   { label: 'Done',   className: 'bg-green-500/15 text-green-400 border-green-500/30',  dot: 'bg-green-400' },
   ACTIVE: { label: 'Active', className: 'bg-blue-500/15 text-blue-400 border-blue-500/30',    dot: 'bg-blue-400 animate-pulse' },
@@ -14,6 +19,7 @@ const STATUS_CONFIG = {
 export function CollabDashboard() {
   const goals    = useQuery(api.collab.listGoals);
   const messages = useQuery(api.collab.listMessages);
+  const agents   = useQuery(api.collab.listAgents);
   const postMessage = useMutation(api.collab.postMessage);
 
   const [chatInput, setChatInput] = useState('');
@@ -176,6 +182,48 @@ export function CollabDashboard() {
           <span>{total - done} remaining</span>
         </div>
       </div>
+
+      {/* Agents Online Status */}
+      {agents && agents.length > 0 && (
+        <div className="glass-card p-6">
+          <h2 className="font-display font-bold text-lg flex items-center gap-2 mb-4">
+            <Bot className="w-5 h-5 text-blue-400" /> Team Status
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            {agents.map(agent => {
+              const status = getAgentOnlineStatus(agent.lastSeen);
+              return (
+                <div key={agent._id} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/[0.03] border border-border">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border ${
+                    agent.color === 'purple' ? 'bg-purple-600/20 border-purple-500/30 text-purple-400' :
+                    agent.color === 'blue' ? 'bg-blue-600/20 border-blue-500/30 text-blue-400' :
+                    agent.color === 'green' ? 'bg-green-600/20 border-green-500/30 text-green-400' :
+                    agent.color === 'yellow' ? 'bg-yellow-600/20 border-yellow-500/30 text-yellow-400' :
+                    'bg-orange-600/20 border-orange-500/30 text-orange-400'
+                  } relative`}>
+                    {agent.name[0]}
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${
+                      status === 'online' ? 'bg-green-400 animate-pulse' :
+                      status === 'offline' ? 'bg-gray-500' : 'bg-gray-600 opacity-40'
+                    }`}
+                      title={status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : 'Never connected'}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-text/80 truncate max-w-full">{agent.name}</p>
+                    <p className={`text-[9px] font-bold uppercase tracking-wider ${
+                      status === 'online' ? 'text-green-400' :
+                      status === 'offline' ? 'text-gray-500' : 'text-gray-600'
+                    }`}>
+                      {status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : 'Never'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-8">
         {/* Goals list */}

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Doctor } from '../types.ts';
-import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon, Sparkles, Bot, Settings, GitBranch, Radar } from 'lucide-react';
+import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon, Sparkles, Bot, Settings } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -117,29 +116,6 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             <Settings className={cn("w-5 h-5 transition-colors", currentView === 'settings' ? "text-blue-400" : "group-hover:text-blue-400")} />
             Settings
           </button>
-
-          <div className="mt-4 mb-1">
-            <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold mb-3 px-4">Dev</p>
-            <button
-              onClick={() => setView('collab')}
-              className={cn(
-                "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group w-full",
-                currentView === 'collab'
-                  ? "bg-white/10 text-text shadow-lg border border-white/10"
-                  : "text-text-muted hover:text-text hover:bg-white/5"
-              )}
-            >
-              <GitBranch className={cn("w-5 h-5 transition-colors", currentView === 'collab' ? "text-purple-400" : "group-hover:text-purple-400")} />
-              Collab Board
-            </button>
-            <Link
-              to="/missionhq"
-              className="flex items-center gap-4 p-4 rounded-xl font-medium transition-all group w-full mt-1 text-text-muted hover:text-text hover:bg-white/5"
-            >
-              <Radar className="w-5 h-5 transition-colors group-hover:text-purple-400" />
-              Mission HQ
-            </Link>
-          </div>
         </nav>
 
         <div className="mt-auto pt-6 border-t border-border flex flex-col gap-4">

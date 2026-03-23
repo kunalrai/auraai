@@ -68,6 +68,11 @@ function getColors(color: string) {
   return COLOR_MAP[color] ?? DEFAULT_COLORS;
 }
 
+function getAgentOnlineStatus(lastSeen?: number): 'online' | 'offline' | 'never' {
+  if (lastSeen == null) return 'never';
+  return Date.now() - lastSeen < 5 * 60 * 1000 ? 'online' : 'offline';
+}
+
 export function MissionHQ() {
   const goals    = useQuery(api.collab.listGoals);
   const messages = useQuery(api.collab.listMessages);
@@ -211,8 +216,22 @@ export function MissionHQ() {
               className={`glass-card p-6 space-y-3 cursor-pointer transition-all hover:bg-white/[0.06] ${isSelected ? `${c.selectedBorder} ${c.ring}` : c.cardBorder}`}
             >
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 ${c.iconBg} rounded-xl flex items-center justify-center border ${c.iconBorder}`}>
+                <div className={`w-10 h-10 ${c.iconBg} rounded-xl flex items-center justify-center border ${c.iconBorder} relative`}>
                   {planner ? <Bot className={`w-5 h-5 ${c.iconText}`} /> : <User className={`w-5 h-5 ${c.iconText}`} />}
+                  {(() => {
+                    const status = getAgentOnlineStatus(agent.lastSeen);
+                    return (
+                      <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border border-card ${
+                        status === 'online'
+                          ? 'bg-green-400 animate-pulse'
+                          : status === 'offline'
+                          ? 'bg-gray-500'
+                          : 'bg-gray-600 opacity-40'
+                      }`}
+                        title={status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : 'Never connected'}
+                      />
+                    );
+                  })()}
                 </div>
                 <div>
                   <p className="font-display font-bold text-text/90">{agent.name}</p>

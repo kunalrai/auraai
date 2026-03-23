@@ -26,6 +26,7 @@ export default defineSchema({
     name: v.string(),
     role: v.string(),
     color: v.string(),
+    lastSeen: v.optional(v.number()),
   }),
 
   docs: defineTable({
