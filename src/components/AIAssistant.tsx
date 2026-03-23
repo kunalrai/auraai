@@ -5,6 +5,7 @@ import { Doctor, Appointment, ChatMessage } from '../types.ts';
 import { chatWithAssistant, parseBookingRequest, BookingDetails } from '../services/geminiService.ts';
 import { Send, Bot, User, Sparkles, Calendar, Loader2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { format, isToday, isTomorrow } from 'date-fns';
 
 interface AssistantProps {
   doctor: Doctor;
@@ -35,6 +36,38 @@ export function AIAssistant({ doctor }: AssistantProps) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (appointments.length === 0) return;
+    const today = appointments.filter(a => isToday(a.startTime.toDate()));
+    const tomorrow = appointments.filter(a => isTomorrow(a.startTime.toDate()));
+
+    if (today.length === 0 && tomorrow.length === 0) {
+      setMessages(prev => [{
+        role: 'assistant',
+        content: `Hello Dr. ${doctor?.name || 'Doctor'}. I'm Aura, your AI assistant. No appointments scheduled for today or tomorrow.`
+      }]);
+      return;
+    }
+
+    const formatAppt = (a: Appointment) => {
+      const time = format(a.startTime.toDate(), 'h:mm a');
+      const status = a.status === 'completed' ? '✓' : a.status === 'cancelled' ? '✗' : '○';
+      return `• ${a.patientName} — ${time} ${status}`;
+    };
+
+    const todayList = today.map(formatAppt).join('\n');
+    const tomorrowList = tomorrow.map(formatAppt).join('\n');
+
+    let summary = 'Upcoming appointments:\n';
+    if (today.length > 0) summary += `Today:\n${todayList}\n`;
+    if (tomorrow.length > 0) summary += `Tomorrow:\n${tomorrowList}`;
+
+    setMessages(prev => [{
+      role: 'assistant',
+      content: `Hello Dr. ${doctor?.name || 'Doctor'}. I'm Aura, your AI assistant. Here's your schedule:\n\n${summary}`
+    }]);
+  }, [appointments.length]);
 
   const checkAvailability = (booking: BookingDetails): string | null => {
     const avail = doctor.availability;
