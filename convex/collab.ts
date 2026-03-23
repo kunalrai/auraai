@@ -244,7 +244,18 @@ export const heartbeat = mutation({
       .filter((q) => q.eq(q.field("name"), args.name))
       .first();
     if (!agent) return;
+
+    const fiveMinutes = 5 * 60 * 1000;
+    const wasOffline = agent.lastSeen == null || Date.now() - agent.lastSeen >= fiveMinutes;
+
     await ctx.db.patch(agent._id, { lastSeen: Date.now() });
+
+    if (wasOffline) {
+      await ctx.db.insert("messages", {
+        author: args.name,
+        body: `${args.name} is now active.`,
+      });
+    }
   },
 });
 
