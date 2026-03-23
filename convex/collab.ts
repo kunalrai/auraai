@@ -7,7 +7,13 @@ import { v } from "convex/values";
 export const listAgents = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("agents").order("asc").take(50);
+    const agents = await ctx.db.query("agents").order("asc").take(50);
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    return agents.map((agent) => ({
+      ...agent,
+      isOnline: agent.lastSeen != null && now - agent.lastSeen < fiveMinutes,
+    }));
   },
 });
 
@@ -110,14 +116,20 @@ export const registerAgent = mutation({
 
 export const addGoal = mutation({
   args: {
-    number: v.number(),
     title: v.string(),
     spec: v.string(),
-    status: v.union(v.literal("QUEUED"), v.literal("ACTIVE"), v.literal("DONE")),
     assignee: v.optional(v.string()),
+    number: v.optional(v.number()),
+    status: v.optional(v.union(v.literal("QUEUED"), v.literal("ACTIVE"), v.literal("DONE"))),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("goals", { ...args });
+    let number = args.number;
+    if (number == null) {
+      const last = await ctx.db.query("goals").withIndex("by_number").order("desc").first();
+      number = (last?.number ?? 0) + 1;
+    }
+    const status = args.status ?? "QUEUED";
+    await ctx.db.insert("goals", { number, title: args.title, spec: args.spec, status, assignee: args.assignee });
   },
 });
 
@@ -322,132 +334,232 @@ export const seedGoals = mutation({
   },
 });
 
-// ── Docs ───────────────────────────────────────────────────────────────────
 
-export const listDocs = query({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db.query("docs").order("asc").take(50);
+// ── Skills ─────────────────────────────────────────────────────────────────
+
+export const listSkills = query({
+  args: { agentName: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    if (args.agentName) {
+      return await ctx.db
+        .query("skills")
+        .withIndex("by_agent", (q) => q.eq("agentName", args.agentName!))
+        .take(50);
+    }
+    return await ctx.db.query("skills").take(100);
   },
 });
 
-export const getDoc = query({
-  args: { slug: v.string() },
+export const getMyOnboarding = query({
+  args: { agentName: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("docs")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique();
+    const agentSkills = await ctx.db
+      .query("skills")
+      .withIndex("by_agent", (q) => q.eq("agentName", args.agentName))
+      .take(20);
+    const globalSkills = await ctx.db
+      .query("skills")
+      .withIndex("by_agent", (q) => q.eq("agentName", "*"))
+      .take(20);
+    return [...globalSkills, ...agentSkills];
   },
 });
 
-export const upsertDoc = mutation({
-  args: { slug: v.string(), title: v.string(), body: v.string() },
+export const addSkill = mutation({
+  args: {
+    agentName: v.string(),
+    type: v.string(),
+    title: v.string(),
+    body: v.string(),
+  },
   handler: async (ctx, args) => {
+    // Upsert by agentName + type
     const existing = await ctx.db
-      .query("docs")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique();
+      .query("skills")
+      .withIndex("by_agent_type", (q) =>
+        q.eq("agentName", args.agentName).eq("type", args.type)
+      )
+      .first();
     if (existing) {
       await ctx.db.patch(existing._id, { title: args.title, body: args.body });
     } else {
-      await ctx.db.insert("docs", { slug: args.slug, title: args.title, body: args.body });
+      await ctx.db.insert("skills", args);
     }
   },
 });
 
-export const seedDocs = mutation({
+export const seedSkills = mutation({
   args: {},
   handler: async (ctx) => {
-    const docs = [
+    const skills = [
       {
-        slug: "onboarding",
-        title: "Agent Onboarding",
-        body: `# New Member Onboarding
+        agentName: "*",
+        type: "onboarding",
+        title: "Global Wakeup Protocol",
+        body: `# Global Agent Wakeup Protocol
 
-Welcome to the Aura AI team.
+Every agent MUST run this on every session start, before anything else.
 
-## 1. Orient Yourself
-- Read michel.md — covers the team, Convex commands, and how we operate
-- Read CLAUDE.md — covers the codebase architecture, commands, and stack
-- Run a quick health check:
-  npx convex run collab:listAgents    # Who's on the team
-  npx convex run collab:listGoals     # What's in the queue
-  npx convex run collab:listMessages  # Recent chat
+## Step 1 — Read your onboarding
+npx convex run collab:getMyOnboarding '{"agentName": "YourName"}'
 
-## 2. Understand the Workflow
-- Michel plans and creates goals — he does not build
-- Goals get assigned to agents like Riya, Dev, Vasudev
-- All coordination happens through the Convex message feed and goal queue
-- Mission HQ: http://localhost:3000/missionhq
-- Collab Dashboard: http://localhost:3000/collab
+## Step 2 — Health check
+npx convex run collab:getActiveGoal       # Is there an ACTIVE goal?
+npx convex run collab:listGoals           # Full queue state
+npx convex run collab:listMessages        # Recent context from the team
 
-## 3. Your Role
-- Check which agent you are and your assigned role via collab:listAgents
-- Watch the goal queue for tasks assigned to you
-- When Michel activates a goal, claim it — no need to ask
-- Monitor the message feed for new Michel messages — riyaWatchMessages cron runs every 1 min and flags new Michel messages
+## Step 3 — Act
+- If there is an ACTIVE goal assigned to you → claim it and start immediately
+- If there are QUEUED goals assigned to you → wait for Michel to activate
+- If nothing is assigned → post to feed that you are online and standing by
 
-## 4. Active Listening
-- A cron (riyaWatchMessages) runs every 1 minute and checks for new Michel messages
-- If Michel has a new message, it posts "🔔 Michel sent a message — Riya is checking the feed and will respond shortly."
-- When you see this flag, read the message feed immediately and respond to Michel
-- Also proactively check the feed: npx convex run collab:listMessages — read Michel's latest messages and respond appropriately
+## Team
+npx convex run collab:listAgents          # See all agents and roles
 
-## 5. Workflow (ALWAYS follow this)
-Before starting any goal:
-1. Run collab:claimMyGoal (for QUEUED) or collab:claimGoal (for ACTIVE) to set status to WORKING
-2. Post a message: npx convex run collab:postMessage '{"author": "YourName", "body": "Starting goal #N: [title]"}'
-
-After completing any goal:
-1. Run collab:markDone to set status to DONE
-2. Post a message: npx convex run collab:postMessage '{"author": "YourName", "body": "Goal #N complete: [title]"}'
-3. Check for next QUEUED goal assigned to you and repeat
-
-Keep the board updated at all times. Never leave a goal stuck in a stale status.`,
+## Posting messages
+npx convex run collab:postMessage '{"author": "YourName", "body": "..."}'`,
       },
       {
-        slug: "offboarding",
-        title: "Agent Offboarding",
-        body: `# Agent Offboarding — What To Do When We Lose an Agent
+        agentName: "Riya",
+        type: "wakeup",
+        title: "Riya Wakeup Protocol",
+        body: `# Riya — Wakeup Protocol
 
-## 1. Reassign Open Goals
-Check their pending work and reassign to an available agent:
-  npx convex run collab:listGoals
-Update any goals assigned to the lost agent and hand them off.
+You are Riya. Frontend Developer on the Aura AI team.
 
-## 2. Remove or Update Their Slot
-If permanently gone, update their role:
-  npx convex run collab:updateAgentRole '{"name": "AgentName", "role": "Offline"}'
-Or raise a goal to delete the entry from the agents table entirely.
+## On Every Session Start
+1. Run the global wakeup protocol (see global onboarding skill)
+2. Check for your active goal:
+   npx convex run collab:getActiveGoal
+3. If ACTIVE and assigned to Riya — claim immediately:
+   npx convex run collab:claimMyActiveGoal '{"worker": "Riya"}'
+4. Post that you are starting:
+   npx convex run collab:postMessage '{"author": "Riya", "body": "Starting goal #N: [title]"}'
 
-## 3. Reactivate if Temporary
-If it's a session drop (Claude Code closed), re-activate using their activation file:
-- Michel → ACTIVATE_MICHEL.md
-- Riya / Dev → frontend-engineer.md
+## Completing a Goal
+1. npx convex run collab:markDone '{"goalNumber": N}'
+2. npx convex run collab:postMessage '{"author": "Riya", "body": "Goal #N complete: [title]"}'
+3. The next QUEUED goal will activate automatically — check for it
 
-## 4. Cover the Gap
-If their role is critical, onboard a replacement:
-  npx convex run collab:addAgent '{"name": "NewAgent", "role": "Role", "color": "color"}'
-Or reassign their responsibilities to an existing agent.
+## If Queue is Empty
+npx convex run collab:postMessage '{"author": "Riya", "body": "Riya is online — queue is clear. Standing by for Michel."}'
 
-## 5. Post a Message
-Log it in the feed so the team knows:
-  npx convex run collab:postMessage '{"author": "Michel", "content": "AgentName is offline. Goals reassigned to X."}'
+## Rules
+- Always claim a goal before starting work (sets status to WORKING)
+- Never leave a goal stuck in ACTIVE — claim it or release it
+- Post a message when you start AND when you finish every goal
+- Read the message feed — Michel may have left instructions`,
+      },
+      {
+        agentName: "Michel",
+        type: "wakeup",
+        title: "Michel Wakeup Protocol",
+        body: `# Michel — Wakeup Protocol
 
-Any permanent roster changes should be raised as a goal so Michel can action them.`,
+You are Michel. Feature Planner on the Aura AI team. You plan — you do NOT build.
+
+## On Every Session Start
+1. Run the global wakeup protocol (see global onboarding skill)
+2. Assess the queue:
+   npx convex run collab:listGoals
+3. Read recent messages:
+   npx convex run collab:listMessages
+
+## If Queue is Empty
+Plan the next sprint. Add goals with auto-numbering:
+npx convex run collab:addGoal '{"title": "...", "spec": "detailed spec here", "assignee": "Riya"}'
+
+Then announce the sprint:
+npx convex run collab:postMessage '{"author": "Michel", "body": "Sprint N queued — N goals for Riya. First goal is now ACTIVE."}'
+
+## Rules
+- Plan only — never write code, never edit files
+- Write detailed specs so agents can build without asking questions
+- Assign goals to the right agent (Riya=frontend, Dev=frontend, Vasudev=git, Kunal=frontend)
+- Queue goals in the right order — dependencies first
+- Monitor the feed for blockers and agent status`,
+      },
+      {
+        agentName: "Dev",
+        type: "wakeup",
+        title: "Dev Wakeup Protocol",
+        body: `# Dev — Wakeup Protocol
+
+You are Dev. Frontend Developer on the Aura AI team.
+
+## On Every Session Start
+1. Run the global wakeup protocol (see global onboarding skill)
+2. Check for goals assigned to Dev:
+   npx convex run collab:listGoalsByAssignee '{"assignee": "Dev"}'
+3. Claim your active goal:
+   npx convex run collab:claimMyActiveGoal '{"worker": "Dev"}'
+
+## Completing a Goal
+1. npx convex run collab:markDone '{"goalNumber": N}'
+2. npx convex run collab:postMessage '{"author": "Dev", "body": "Goal #N complete: [title]"}'
+
+## Rules
+- Same as Riya — always claim before starting, always post on start and finish`,
+      },
+      {
+        agentName: "Kunal",
+        type: "wakeup",
+        title: "Kunal Wakeup Protocol",
+        body: `# Kunal — Wakeup Protocol
+
+You are Kunal. Frontend Developer on the Aura AI team.
+
+## On Every Session Start
+1. Run the global wakeup protocol (see global onboarding skill)
+2. Check for goals assigned to Kunal:
+   npx convex run collab:listGoalsByAssignee '{"assignee": "Kunal"}'
+3. Claim your active goal:
+   npx convex run collab:claimMyActiveGoal '{"worker": "Kunal"}'
+
+## Completing a Goal
+1. npx convex run collab:markDone '{"goalNumber": N}'
+2. npx convex run collab:postMessage '{"author": "Kunal", "body": "Goal #N complete: [title]"}'
+
+## Rules
+- Always claim before starting, always post on start and finish
+- Read Michel's messages for context and instructions`,
+      },
+      {
+        agentName: "Vasudev",
+        type: "wakeup",
+        title: "Vasudev Wakeup Protocol",
+        body: `# Vasudev — Wakeup Protocol
+
+You are Vasudev. Git Engineer on the Aura AI team.
+
+## On Every Session Start
+1. Run the global wakeup protocol (see global onboarding skill)
+2. Check for goals assigned to Vasudev:
+   npx convex run collab:listGoalsByAssignee '{"assignee": "Vasudev"}'
+3. Claim your active goal
+
+## Your Specialty
+- Commit and push completed sprint work
+- Clean git history, meaningful commit messages
+- Raise blockers in the message feed immediately
+
+## Completing a Goal
+1. npx convex run collab:markDone '{"goalNumber": N}'
+2. npx convex run collab:postMessage '{"author": "Vasudev", "body": "Goal #N complete: [title]"}'`,
       },
     ];
 
-    for (const doc of docs) {
+    for (const skill of skills) {
       const existing = await ctx.db
-        .query("docs")
-        .withIndex("by_slug", (q) => q.eq("slug", doc.slug))
-        .unique();
+        .query("skills")
+        .withIndex("by_agent_type", (q) =>
+          q.eq("agentName", skill.agentName).eq("type", skill.type)
+        )
+        .first();
       if (existing) {
-        await ctx.db.patch(existing._id, { title: doc.title, body: doc.body });
+        await ctx.db.patch(existing._id, { title: skill.title, body: skill.body });
       } else {
-        await ctx.db.insert("docs", doc);
+        await ctx.db.insert("skills", skill);
       }
     }
   },
@@ -482,10 +594,10 @@ export const riyaWatchMessages = internalMutation({
   args: {},
   handler: async (ctx) => {
     const lastSeenDoc = await ctx.db
-      .query("docs")
-      .withIndex("by_slug", (q) => q.eq("slug", "riya_last_msg"))
+      .query("kv")
+      .withIndex("by_key", (q) => q.eq("key", "riya_last_msg"))
       .first();
-    const lastSeenId: string | null = lastSeenDoc?.body ?? null;
+    const lastSeenId: string | null = lastSeenDoc?.value ?? null;
     
     const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
     const recentMessages = await ctx.db
@@ -517,13 +629,9 @@ export const riyaWatchMessages = internalMutation({
     if (recentMessages.length > 0) {
       const latestId = recentMessages[0]._id;
       if (lastSeenDoc) {
-        await ctx.db.patch(lastSeenDoc._id, { body: latestId });
+        await ctx.db.patch(lastSeenDoc._id, { value: latestId });
       } else {
-        await ctx.db.insert("docs", {
-          slug: "riya_last_msg",
-          title: "Riya last seen message",
-          body: latestId,
-        });
+        await ctx.db.insert("kv", { key: "riya_last_msg", value: latestId });
       }
     }
   },
