@@ -17,4 +17,11 @@ crons.interval(
   {}
 );
 
+crons.interval(
+  "riya-message-listener",
+  { minutes: 1 },
+  internal.collab.riyaWatchMessages,
+  {}
+);
+
 export default crons;

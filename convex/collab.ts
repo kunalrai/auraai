@@ -386,8 +386,15 @@ Welcome to the Aura AI team.
 - Check which agent you are and your assigned role via collab:listAgents
 - Watch the goal queue for tasks assigned to you
 - When Michel activates a goal, claim it — no need to ask
+- Monitor the message feed for new Michel messages — riyaWatchMessages cron runs every 1 min and flags new Michel messages
 
-## 4. Workflow (ALWAYS follow this)
+## 4. Active Listening
+- A cron (riyaWatchMessages) runs every 1 minute and checks for new Michel messages
+- If Michel has a new message, it posts "🔔 Michel sent a message — Riya is checking the feed and will respond shortly."
+- When you see this flag, read the message feed immediately and respond to Michel
+- Also proactively check the feed: npx convex run collab:listMessages — read Michel's latest messages and respond appropriately
+
+## 5. Workflow (ALWAYS follow this)
 Before starting any goal:
 1. Run collab:claimMyGoal (for QUEUED) or collab:claimGoal (for ACTIVE) to set status to WORKING
 2. Post a message: npx convex run collab:postMessage '{"author": "YourName", "body": "Starting goal #N: [title]"}'
@@ -468,6 +475,57 @@ export const riyaCheckGoals = internalMutation({
       author: "Michel",
       body: `Riya, you have an active goal: **${active.title}**. ${active.spec} Ship it!`,
     });
+  },
+});
+
+export const riyaWatchMessages = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const lastSeenDoc = await ctx.db
+      .query("docs")
+      .withIndex("by_slug", (q) => q.eq("slug", "riya_last_msg"))
+      .first();
+    const lastSeenId: string | null = lastSeenDoc?.body ?? null;
+    
+    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+    const recentMessages = await ctx.db
+      .query("messages")
+      .order("desc")
+      .take(10);
+    
+    let newMichelMsg = false;
+    for (const msg of recentMessages) {
+      if (lastSeenId && msg._id === lastSeenId) break;
+      if (msg.author === "Michel" && msg._creationTime >= twoMinutesAgo) {
+        newMichelMsg = true;
+        break;
+      }
+    }
+    
+    if (newMichelMsg) {
+      const existing = recentMessages.find(
+        m => m.author === "Riya" && m.body.includes("Michel sent a message")
+      );
+      if (!existing) {
+        await ctx.db.insert("messages", {
+          author: "Riya",
+          body: `🔔 Michel sent a message — Riya is checking the feed and will respond shortly.`,
+        });
+      }
+    }
+    
+    if (recentMessages.length > 0) {
+      const latestId = recentMessages[0]._id;
+      if (lastSeenDoc) {
+        await ctx.db.patch(lastSeenDoc._id, { body: latestId });
+      } else {
+        await ctx.db.insert("docs", {
+          slug: "riya_last_msg",
+          title: "Riya last seen message",
+          body: latestId,
+        });
+      }
+    }
   },
 });
 
