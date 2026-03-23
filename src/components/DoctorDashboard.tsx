@@ -260,13 +260,13 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-5xl font-display font-bold tracking-tight gradient-text">Appointments</h2>
-          <p className="text-text-muted font-sans mt-2">Manage your schedule and patient outreach with AI precision.</p>
+          <p className="text-muted-foreground font-sans mt-2">Manage your schedule and patient outreach with AI precision.</p>
         </div>
         
         <div className="flex items-center gap-3">
           <button
             onClick={selectedIds.size === appointments.length && appointments.length > 0 ? clearSelection : selectAll}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-border text-xs font-bold text-text-muted hover:text-text hover:bg-white/10 transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-border text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all"
           >
             {selectedIds.size === appointments.length && appointments.length > 0
               ? <CheckSquare className="w-4 h-4 text-blue-400" />
@@ -279,7 +279,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-6 py-2 rounded-lg font-medium capitalize transition-all ${
-                filter === f ? 'bg-white/10 text-text shadow-lg' : 'text-text-muted hover:text-text hover:bg-white/5'
+                filter === f ? 'bg-white/10 text-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
               }`}
             >
               {f}
@@ -299,10 +299,10 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
         {/* Weekly Total */}
         <div className="glass-card p-5 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">This Week</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">This Week</span>
             <Calendar className="w-4 h-4 text-blue-400" />
           </div>
-          <p className="text-3xl font-display font-bold text-text">
+          <p className="text-3xl font-display font-bold text-foreground">
             <AnimatedNumber value={weeklyTotal} />
           </p>
           <div className="flex items-center gap-1.5">
@@ -311,7 +311,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                 ? <TrendingUp className="w-3 h-3 text-green-400" />
                 : <TrendingDown className="w-3 h-3 text-red-400" />
             )}
-            <span className={`text-[10px] font-bold ${totalTrend > 0 ? 'text-green-400' : totalTrend < 0 ? 'text-red-400' : 'text-text-muted'}`}>
+            <span className={`text-[10px] font-bold ${totalTrend > 0 ? 'text-green-400' : totalTrend < 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
               {totalTrend > 0 ? '+' : ''}{totalTrend} vs last week
             </span>
           </div>
@@ -320,10 +320,10 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
         {/* Weekly Completed */}
         <div className="glass-card p-5 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Completed</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Completed</span>
             <CheckCircle className="w-4 h-4 text-green-400" />
           </div>
-          <p className="text-3xl font-display font-bold text-text">
+          <p className="text-3xl font-display font-bold text-foreground">
             <AnimatedNumber value={weeklyCompleted} />
           </p>
           <div className="flex items-center gap-1.5">
@@ -332,7 +332,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                 ? <TrendingUp className="w-3 h-3 text-green-400" />
                 : <TrendingDown className="w-3 h-3 text-red-400" />
             )}
-            <span className={`text-[10px] font-bold ${completedTrend > 0 ? 'text-green-400' : completedTrend < 0 ? 'text-red-400' : 'text-text-muted'}`}>
+            <span className={`text-[10px] font-bold ${completedTrend > 0 ? 'text-green-400' : completedTrend < 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
               {completedTrend > 0 ? '+' : ''}{completedTrend} vs last week
             </span>
           </div>
@@ -341,10 +341,10 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
         {/* Cancellation Rate */}
         <div className="glass-card p-5 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Cancellation Rate</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Cancellation Rate</span>
             <XCircle className="w-4 h-4 text-red-400" />
           </div>
-          <p className="text-3xl font-display font-bold text-text">
+          <p className="text-3xl font-display font-bold text-foreground">
             <AnimatedNumber value={weeklyCancellationRate} /><span className="text-xl">%</span>
           </p>
           <div className="flex items-center gap-1.5">
@@ -353,7 +353,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                 ? <TrendingUp className="w-3 h-3 text-green-400" />
                 : <TrendingDown className="w-3 h-3 text-red-400" />
             )}
-            <span className={`text-[10px] font-bold ${rateTrend < 0 ? 'text-green-400' : rateTrend > 0 ? 'text-red-400' : 'text-text-muted'}`}>
+            <span className={`text-[10px] font-bold ${rateTrend < 0 ? 'text-green-400' : rateTrend > 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
               {rateTrend > 0 ? '+' : ''}{rateTrend}% vs last week
             </span>
           </div>
@@ -362,11 +362,11 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
         {/* Busiest Day */}
         <div className="glass-card p-5 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Busiest Day</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Busiest Day</span>
             <Users className="w-4 h-4 text-purple-400" />
           </div>
-          <p className="text-3xl font-display font-bold text-text">{busiestDayName}</p>
-          <p className="text-xs text-text-muted">
+          <p className="text-3xl font-display font-bold text-foreground">{busiestDayName}</p>
+          <p className="text-xs text-muted-foreground">
             {busiestDay ? `${busiestDay[1]} appointments` : 'No data'}
           </p>
         </div>
@@ -382,26 +382,26 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
         {/* Today's appointments */}
         <div className="glass-card p-5 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Today</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Today</span>
             <Calendar className="w-4 h-4 text-blue-400" />
           </div>
-          <p className="text-3xl font-display font-bold text-text">
+          <p className="text-3xl font-display font-bold text-foreground">
             <AnimatedNumber value={totalToday} />
           </p>
-          <p className="text-xs text-text-muted">appointments</p>
+          <p className="text-xs text-muted-foreground">appointments</p>
         </div>
 
         {/* Status breakdown */}
         <div className="glass-card p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Status</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</span>
             <CheckCircle className="w-4 h-4 text-green-400" />
           </div>
           <div className="flex gap-2 text-xs font-bold">
             <span className="text-green-400"><AnimatedNumber value={completedCount} /> done</span>
-            <span className="text-text-muted">/</span>
+            <span className="text-muted-foreground">/</span>
             <span className="text-blue-400"><AnimatedNumber value={scheduledCount} /> sched</span>
-            <span className="text-text-muted">/</span>
+            <span className="text-muted-foreground">/</span>
             <span className="text-red-400"><AnimatedNumber value={cancelledCount} /> canc</span>
           </div>
           <div className="flex h-1.5 rounded-full overflow-hidden bg-white/5">
@@ -414,25 +414,25 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
         {/* Total patients */}
         <div className="glass-card p-5 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Patients</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Patients</span>
             <Users className="w-4 h-4 text-purple-400" />
           </div>
-          <p className="text-3xl font-display font-bold text-text">
+          <p className="text-3xl font-display font-bold text-foreground">
             <AnimatedNumber value={patientCount} />
           </p>
-          <p className="text-xs text-text-muted">registered</p>
+          <p className="text-xs text-muted-foreground">registered</p>
         </div>
 
         {/* Reminders sent this week */}
         <div className="glass-card p-5 space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Reminders</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Reminders</span>
             <Bell className="w-4 h-4 text-yellow-400" />
           </div>
-          <p className="text-3xl font-display font-bold text-text">
+          <p className="text-3xl font-display font-bold text-foreground">
             <AnimatedNumber value={remindersSent} />
           </p>
-          <p className="text-xs text-text-muted">sent this week</p>
+          <p className="text-xs text-muted-foreground">sent this week</p>
         </div>
       </motion.div>
 
@@ -447,8 +447,8 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
           <MessageSquare className="w-5 h-5 text-blue-400" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-bold text-text/90">Ask Aura AI</p>
-          <p className="text-xs text-text-muted">"Schedule a follow-up for Sarah Miller..."</p>
+          <p className="text-sm font-bold text-foreground/90">Ask Aura AI</p>
+          <p className="text-xs text-muted-foreground">"Schedule a follow-up for Sarah Miller..."</p>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(37,99,235,0.3)]">
           Ask Now
@@ -458,7 +458,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
 
       <div className="grid gap-6">
         {loading ? (
-          <div className="p-20 text-center text-text-muted font-sans animate-pulse">Synchronizing schedule...</div>
+          <div className="p-20 text-center text-muted-foreground font-sans animate-pulse">Synchronizing schedule...</div>
         ) : appointments.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -468,8 +468,8 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
             <div className="w-16 h-16 bg-blue-600/10 rounded-2xl flex items-center justify-center border border-blue-500/20 mx-auto">
               <Calendar className="w-8 h-8 text-blue-400" />
             </div>
-            <h3 className="text-lg font-display font-bold text-text/80">No appointments</h3>
-            <p className="text-sm text-text-muted">No appointments scheduled for this period. Use Aura AI to book one.</p>
+            <h3 className="text-lg font-display font-bold text-foreground/80">No appointments</h3>
+            <p className="text-sm text-muted-foreground">No appointments scheduled for this period. Use Aura AI to book one.</p>
           </motion.div>
         ) : (
           <AnimatePresence>
@@ -486,20 +486,20 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                   className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border transition-all ${
                     selectedIds.has(app.id)
                       ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
-                      : 'bg-white/5 border-border text-text-muted hover:border-blue-500/30 hover:text-blue-400'
+                      : 'bg-white/5 border-border text-muted-foreground hover:border-blue-500/30 hover:text-blue-400'
                   }`}
                 >
                   {selectedIds.has(app.id) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                 </button>
 
                 <div className="flex flex-col items-center justify-center w-24 h-24 border-r border-border pr-8">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                     {format(app.startTime.toDate(), 'EEE')}
                   </span>
-                  <span className="text-4xl font-display font-bold text-text group-hover:text-blue-400 transition-colors">
+                  <span className="text-4xl font-display font-bold text-foreground group-hover:text-blue-400 transition-colors">
                     {format(app.startTime.toDate(), 'd')}
                   </span>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                     {format(app.startTime.toDate(), 'MMM')}
                   </span>
                 </div>
@@ -508,7 +508,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-border">
                       <Clock className="w-3 h-3 text-blue-400" />
-                      <span className="font-bold text-sm text-text/80">
+                      <span className="font-bold text-sm text-foreground/80">
                         {format(app.startTime.toDate(), 'p')}
                       </span>
                     </div>
@@ -527,11 +527,11 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-text-muted" />
-                    <h3 className="text-2xl font-display font-bold text-text/90">{app.patientName}</h3>
+                    <User className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-2xl font-display font-bold text-foreground/90">{app.patientName}</h3>
                   </div>
 
-                  <div className="flex flex-wrap gap-6 text-xs text-text-muted">
+                  <div className="flex flex-wrap gap-6 text-xs text-muted-foreground">
                     {app.patientContact && (
                       <div className="flex items-center gap-2">
                         <Phone className="w-3 h-3" />
@@ -548,7 +548,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                     <div>
                       <button
                         onClick={() => toggleNotes(app.id)}
-                        className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text transition-colors"
+                        className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
                       >
                         <FileText className="w-3 h-3" />
                         Notes
@@ -560,7 +560,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="mt-2 text-sm text-text/70 leading-relaxed pl-1 border-l-2 border-blue-500/30 overflow-hidden"
+                            className="mt-2 text-sm text-foreground/70 leading-relaxed pl-1 border-l-2 border-blue-500/30 overflow-hidden"
                           >
                             {app.notes}
                           </motion.p>
@@ -637,7 +637,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                     className="w-12 h-12 flex items-center justify-center rounded-xl bg-white/5 border border-border hover:bg-red-500/10 hover:border-red-500/20 transition-all group/del"
                     title="Delete"
                   >
-                    <Trash2 className="w-6 h-6 text-text-muted group-hover/del:text-red-400 transition-colors" />
+                    <Trash2 className="w-6 h-6 text-muted-foreground group-hover/del:text-red-400 transition-colors" />
                   </button>
                 </div>
               </motion.div>
@@ -655,7 +655,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
             exit={{ opacity: 0, y: 20 }}
             className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 glass-card border border-border rounded-2xl backdrop-blur-xl z-50 shadow-2xl"
           >
-            <span className="text-xs font-bold text-text-muted pr-1">{selectedIds.size} selected</span>
+            <span className="text-xs font-bold text-muted-foreground pr-1">{selectedIds.size} selected</span>
             <div className="w-px h-5 bg-border" />
             <button
               onClick={batchComplete}
@@ -673,7 +673,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
             </button>
             <button
               onClick={batchDelete}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-border text-text-muted font-bold text-[10px] uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-border text-muted-foreground font-bold text-[10px] uppercase tracking-widest hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 transition-all"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Delete
@@ -681,7 +681,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
             <div className="w-px h-5 bg-border" />
             <button
               onClick={clearSelection}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-border text-text-muted hover:bg-white/10 transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-border text-muted-foreground hover:bg-white/10 transition-all"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -712,37 +712,37 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                   onClick={() => setEditingAppointment(null)}
                   className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-border hover:bg-white/10 transition-all"
                 >
-                  <X className="w-4 h-4 text-text-muted" />
+                  <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Patient Name</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Patient Name</label>
                   <input
                     type="text"
                     value={editForm.patientName}
                     onChange={(e) => setEditForm(f => ({ ...f, patientName: e.target.value }))}
-                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-text placeholder-text-muted focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all"
+                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-foreground placeholder-text-muted focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Date & Time</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Date & Time</label>
                   <input
                     type="datetime-local"
                     value={editForm.dateTime}
                     onChange={(e) => setEditForm(f => ({ ...f, dateTime: e.target.value }))}
-                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-text focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all [color-scheme:dark]"
+                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all [color-scheme:dark]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Status</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</label>
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm(f => ({ ...f, status: e.target.value as Appointment['status'] }))}
-                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-text focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all [color-scheme:dark]"
+                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all [color-scheme:dark]"
                   >
                     <option value="scheduled">Scheduled</option>
                     <option value="completed">Completed</option>
@@ -751,11 +751,11 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Duration</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Duration</label>
                   <select
                     value={editForm.duration}
                     onChange={(e) => setEditForm(f => ({ ...f, duration: e.target.value }))}
-                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-text focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all [color-scheme:dark]"
+                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all [color-scheme:dark]"
                   >
                     <option value="15 min">15 min</option>
                     <option value="30 min">30 min</option>
@@ -765,13 +765,13 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Notes</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Notes</label>
                   <textarea
                     value={editForm.notes}
                     onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
                     rows={3}
                     placeholder="Add notes..."
-                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-text placeholder-text-muted focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all resize-none"
+                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-foreground placeholder-text-muted focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all resize-none"
                   />
                 </div>
               </div>
@@ -779,7 +779,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setEditingAppointment(null)}
-                  className="flex-1 px-6 py-3 rounded-xl bg-white/5 border border-border text-text-muted font-bold text-sm hover:bg-white/10 transition-all"
+                  className="flex-1 px-6 py-3 rounded-xl bg-white/5 border border-border text-muted-foreground font-bold text-sm hover:bg-white/10 transition-all"
                 >
                   Cancel
                 </button>

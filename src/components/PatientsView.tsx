@@ -171,24 +171,24 @@ export function PatientsView({ doctor }: PatientsViewProps) {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-5xl font-display font-bold tracking-tight gradient-text">Patients</h2>
-          <p className="text-text-muted font-sans mt-2">Manage patient contacts and send reminders with ease.</p>
+          <p className="text-muted-foreground font-sans mt-2">Manage patient contacts and send reminders with ease.</p>
         </div>
         
         <div className="flex gap-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search patients..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 pr-6 py-3 bg-white/5 border border-border rounded-xl focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all w-64 text-text"
+              className="pl-12 pr-6 py-3 bg-white/5 border border-border rounded-xl focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all w-64 text-foreground"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className="px-4 py-3 bg-white/5 border border-border rounded-xl focus:outline-none focus:border-blue-500/50 transition-all text-sm font-medium text-text"
+            className="px-4 py-3 bg-white/5 border border-border rounded-xl focus:outline-none focus:border-blue-500/50 transition-all text-sm font-medium text-foreground"
           >
             <option value="all" className="bg-card">All Patients</option>
             <option value="scheduled" className="bg-card">Scheduled</option>
@@ -215,37 +215,37 @@ export function PatientsView({ doctor }: PatientsViewProps) {
           >
             <form onSubmit={handleAddPatient} className="glass-card p-8 grid grid-cols-1 md:grid-cols-4 gap-6 items-end glow">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Full Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Full Name</label>
                 <input
                   required
                   type="text"
                   value={newPatient.name}
                   onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
-                  className="w-full p-3 bg-white/5 border border-border rounded-lg focus:outline-none focus:border-blue-500/50 text-text"
+                  className="w-full p-3 bg-white/5 border border-border rounded-lg focus:outline-none focus:border-blue-500/50 text-foreground"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Phone Number</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Phone Number</label>
                 <input
                   type="tel"
                   value={newPatient.phone}
                   onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
-                  className="w-full p-3 bg-white/5 border border-border rounded-lg focus:outline-none focus:border-blue-500/50 text-text"
+                  className="w-full p-3 bg-white/5 border border-border rounded-lg focus:outline-none focus:border-blue-500/50 text-foreground"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Email Address</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Email Address</label>
                 <input
                   type="email"
                   value={newPatient.email}
                   onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
-                  className="w-full p-3 bg-white/5 border border-border rounded-lg focus:outline-none focus:border-blue-500/50 text-text"
+                  className="w-full p-3 bg-white/5 border border-border rounded-lg focus:outline-none focus:border-blue-500/50 text-foreground"
                 />
               </div>
               <div className="flex gap-3">
                 <button type="submit" className="flex-1 bg-white text-black py-3 rounded-lg font-bold hover:bg-white/90 transition-all">Save Patient</button>
                 <button type="button" onClick={() => setIsAdding(false)} className="p-3 bg-white/5 border border-border rounded-lg hover:bg-red-500/10 transition-all group">
-                  <X className="w-6 h-6 text-text-muted group-hover:text-red-400" />
+                  <X className="w-6 h-6 text-muted-foreground group-hover:text-red-400" />
                 </button>
               </div>
             </form>
@@ -255,7 +255,7 @@ export function PatientsView({ doctor }: PatientsViewProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {loading ? (
-          <div className="col-span-full p-20 text-center text-text-muted font-sans animate-pulse">Synchronizing patients...</div>
+          <div className="col-span-full p-20 text-center text-muted-foreground font-sans animate-pulse">Synchronizing patients...</div>
         ) : filteredPatients.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -265,8 +265,8 @@ export function PatientsView({ doctor }: PatientsViewProps) {
             <div className="w-16 h-16 bg-blue-600/10 rounded-2xl flex items-center justify-center border border-blue-500/20 mx-auto">
               <Users className="w-8 h-8 text-blue-400" />
             </div>
-            <h3 className="text-lg font-display font-bold text-text/80">No patients yet</h3>
-            <p className="text-sm text-text-muted">Add your first patient to get started with appointment management.</p>
+            <h3 className="text-lg font-display font-bold text-foreground/80">No patients yet</h3>
+            <p className="text-sm text-muted-foreground">Add your first patient to get started with appointment management.</p>
           </motion.div>
         ) : (
           filteredPatients.map((patient) => (
@@ -283,13 +283,13 @@ export function PatientsView({ doctor }: PatientsViewProps) {
                     <User className="w-7 h-7 text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-display font-bold text-text/90">{patient.name}</h3>
-                    <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">ID: {patient.id.slice(0, 8)}</p>
+                    <h3 className="text-2xl font-display font-bold text-foreground/90">{patient.name}</h3>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">ID: {patient.id.slice(0, 8)}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => handleDeletePatient(patient.id)}
-                  className="p-2 bg-white/5 rounded-lg hover:bg-red-500/10 transition-all text-text-muted hover:text-red-400"
+                  className="p-2 bg-white/5 rounded-lg hover:bg-red-500/10 transition-all text-muted-foreground hover:text-red-400"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -297,13 +297,13 @@ export function PatientsView({ doctor }: PatientsViewProps) {
 
               <div className="space-y-3 text-sm">
                 {patient.phone && (
-                  <div className="flex items-center gap-3 text-text/60">
+                  <div className="flex items-center gap-3 text-foreground/60">
                     <Phone className="w-4 h-4 text-blue-400/50" />
                     <span>{patient.phone}</span>
                   </div>
                 )}
                 {patient.email && (
-                  <div className="flex items-center gap-3 text-text/60">
+                  <div className="flex items-center gap-3 text-foreground/60">
                     <Mail className="w-4 h-4 text-purple-400/50" />
                     <span>{patient.email}</span>
                   </div>
@@ -311,7 +311,7 @@ export function PatientsView({ doctor }: PatientsViewProps) {
               </div>
 
               <div className="mt-auto pt-6 border-t border-border">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted mb-4">Send Reminder</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">Send Reminder</p>
                 <div className="grid grid-cols-4 gap-3">
                   <button
                     onClick={() => sendReminder(patient, 'call')}
@@ -362,7 +362,7 @@ export function PatientsView({ doctor }: PatientsViewProps) {
                   <div className="border-t border-border pt-4">
                     <button
                       onClick={() => toggleHistory(patient.id)}
-                      className="flex items-center justify-between w-full text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text transition-colors"
+                      className="flex items-center justify-between w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <span className="flex items-center gap-1.5">
                         <History className="w-3 h-3" />
@@ -379,16 +379,16 @@ export function PatientsView({ doctor }: PatientsViewProps) {
                           className="overflow-hidden mt-3 space-y-2"
                         >
                           {visits.length === 0 ? (
-                            <p className="text-xs text-text-muted italic">No visits yet.</p>
+                            <p className="text-xs text-muted-foreground italic">No visits yet.</p>
                           ) : visits.map(visit => (
                             <div key={visit.id} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-border/50">
-                              <Clock className="w-3 h-3 text-text-muted mt-0.5 flex-shrink-0" />
+                              <Clock className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-xs font-bold text-text/80">
+                                  <span className="text-xs font-bold text-foreground/80">
                                     {format(visit.startTime.toDate(), 'MMM d, yyyy')}
                                   </span>
-                                  <span className="text-[10px] text-text-muted">
+                                  <span className="text-[10px] text-muted-foreground">
                                     {format(visit.startTime.toDate(), 'p')}
                                   </span>
                                   <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${
@@ -400,7 +400,7 @@ export function PatientsView({ doctor }: PatientsViewProps) {
                                   </span>
                                 </div>
                                 {visit.notes && (
-                                  <p className="text-[11px] text-text-muted mt-1 truncate">{visit.notes}</p>
+                                  <p className="text-[11px] text-muted-foreground mt-1 truncate">{visit.notes}</p>
                                 )}
                               </div>
                             </div>
@@ -412,9 +412,9 @@ export function PatientsView({ doctor }: PatientsViewProps) {
                     {/* Clinical Notes */}
                     <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Clinical Notes</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Clinical Notes</span>
                         {notesSavedAt[patient.id] && (
-                          <span className="text-[9px] text-text-muted">Saved {format(notesSavedAt[patient.id], 'p')}</span>
+                          <span className="text-[9px] text-muted-foreground">Saved {format(notesSavedAt[patient.id], 'p')}</span>
                         )}
                       </div>
                       <textarea
@@ -427,7 +427,7 @@ export function PatientsView({ doctor }: PatientsViewProps) {
                         }}
                         rows={3}
                         placeholder="Add clinical notes..."
-                        className="w-full p-3 bg-white/[0.03] border border-border/50 rounded-xl text-xs text-text/80 placeholder-text-muted/40 focus:outline-none focus:border-blue-500/30 focus:bg-white/[0.05] transition-all resize-none"
+                        className="w-full p-3 bg-white/[0.03] border border-border/50 rounded-xl text-xs text-foreground/80 placeholder-text-muted/40 focus:outline-none focus:border-blue-500/30 focus:bg-white/[0.05] transition-all resize-none"
                       />
                       {notesDirty.has(patient.id) && (
                         <button

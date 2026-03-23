@@ -3,6 +3,7 @@ import { Doctor } from '../types.ts';
 import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon, Sparkles, Bot, Settings } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { Button } from '@/components/ui/button';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -24,7 +25,7 @@ interface LayoutProps {
 export function Layout({ children, doctor, onLogout, currentView, setView, theme, toggleTheme, appointmentCount = 0 }: LayoutProps) {
 
   return (
-    <div className="min-h-screen bg-bg text-text font-sans flex flex-col md:flex-row transition-colors duration-300">
+    <div className="min-h-screen bg-bg text-foreground font-sans flex flex-col md:flex-row transition-colors duration-300">
       {/* Sidebar */}
       <aside className="w-full md:w-72 border-b md:border-b-0 md:border-r border-border bg-card p-8 flex flex-col gap-10">
         <div className="flex items-center justify-between">
@@ -34,12 +35,12 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             </div>
             <div>
               <h1 className="text-xl font-display font-bold tracking-tight gradient-text">Aura AI</h1>
-              <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Workspace</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Workspace</p>
             </div>
           </div>
           <button 
             onClick={toggleTheme}
-            className="p-2 rounded-lg hover:bg-white/5 transition-all text-text-muted hover:text-text"
+            className="p-2 rounded-lg hover:bg-white/5 transition-all text-muted-foreground hover:text-foreground"
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -48,7 +49,7 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
 
         <nav className="flex flex-col gap-3 flex-1">
           <div className="mb-4">
-            <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold mb-3 px-4">AI Intelligence</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-3 px-4">AI Intelligence</p>
             <button
               onClick={() => setView('assistant')}
               className={cn(
@@ -67,14 +68,14 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             </button>
           </div>
 
-          <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold mb-1 px-4">Management</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1 px-4">Management</p>
           <button
             onClick={() => setView('dashboard')}
             className={cn(
               "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group",
               currentView === 'dashboard' 
-                ? "bg-white/10 text-text shadow-lg border border-white/10" 
-                : "text-text-muted hover:text-text hover:bg-white/5"
+                ? "bg-white/10 text-foreground shadow-lg border border-white/10" 
+                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
             )}
           >
             <Calendar className={cn("w-5 h-5 transition-colors", currentView === 'dashboard' ? "text-blue-400" : "group-hover:text-blue-400")} />
@@ -85,8 +86,8 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             className={cn(
               "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group",
               currentView === 'calendar' 
-                ? "bg-white/10 text-text shadow-lg border border-white/10" 
-                : "text-text-muted hover:text-text hover:bg-white/5"
+                ? "bg-white/10 text-foreground shadow-lg border border-white/10" 
+                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
             )}
           >
             <Calendar className={cn("w-5 h-5 transition-colors", currentView === 'calendar' ? "text-blue-400" : "group-hover:text-blue-400")} />
@@ -97,8 +98,8 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             className={cn(
               "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group",
               currentView === 'patients' 
-                ? "bg-white/10 text-text shadow-lg border border-white/10" 
-                : "text-text-muted hover:text-text hover:bg-white/5"
+                ? "bg-white/10 text-foreground shadow-lg border border-white/10" 
+                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
             )}
           >
             <Users className={cn("w-5 h-5 transition-colors", currentView === 'patients' ? "text-blue-400" : "group-hover:text-blue-400")} />
@@ -109,8 +110,8 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             className={cn(
               "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group",
               currentView === 'settings'
-                ? "bg-white/10 text-text shadow-lg border border-white/10"
-                : "text-text-muted hover:text-text hover:bg-white/5"
+                ? "bg-white/10 text-foreground shadow-lg border border-white/10"
+                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
             )}
           >
             <Settings className={cn("w-5 h-5 transition-colors", currentView === 'settings' ? "text-blue-400" : "group-hover:text-blue-400")} />
@@ -125,7 +126,7 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             </div>
             <div className="overflow-hidden">
               <p className="text-sm font-bold truncate">{doctor?.name}</p>
-              <p className="text-xs text-text-muted truncate">{doctor?.email}</p>
+              <p className="text-xs text-muted-foreground truncate">{doctor?.email}</p>
             </div>
           </div>
           <button
@@ -160,7 +161,7 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20 group-hover:opacity-40" />
             <Bot className="w-8 h-8 relative z-10" />
             {appointmentCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-bg animate-pulse" />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-background animate-pulse" />
             )}
             <div className="absolute -top-12 right-0 bg-card border border-border px-4 py-2 rounded-xl text-xs font-bold shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
               Need help? Ask Aura

@@ -9,17 +9,12 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; dot: str
   DONE:    { label: 'Done',    className: 'bg-green-500/15 text-green-400 border-green-500/30', dot: 'bg-green-400' },
   WORKING: { label: 'Working', className: 'bg-blue-500/15 text-blue-400 border-blue-500/30',   dot: 'bg-blue-400 animate-pulse' },
   ACTIVE:  { label: 'Active',  className: 'bg-blue-500/15 text-blue-400 border-blue-500/30',   dot: 'bg-blue-400 animate-pulse' },
-  QUEUED:  { label: 'Queued',  className: 'bg-white/5 text-text-muted border-white/10',          dot: 'bg-text-muted/40' },
+  QUEUED:  { label: 'Queued',  className: 'bg-white/5 text-muted-foreground border-white/10',          dot: 'bg-muted-foreground/40' },
 };
-
-function getAgentOnlineStatus(lastSeen?: number): 'online' | 'offline' | 'never' {
-  if (lastSeen == null) return 'never';
-  return Date.now() - lastSeen < 5 * 60 * 1000 ? 'online' : 'offline';
-}
 
 export function OverviewDashboard() {
   const goals  = useQuery(api.collab.listGoals);
-  const agents = useQuery(api.collab.listAgents);
+  const agents = useQuery(api.collab.getAgentStatus);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem('theme') as 'dark' | 'light') || 'dark');
   const [sortStatus, setSortStatus] = useState<string>('all');
 
@@ -50,7 +45,7 @@ export function OverviewDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-bg text-text font-sans flex flex-row">
+    <div className="min-h-screen bg-bg text-foreground font-sans flex flex-row">
       <aside className="w-72 border-r border-border bg-card p-8 flex flex-col gap-10 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -59,24 +54,24 @@ export function OverviewDashboard() {
             </div>
             <div>
               <h1 className="text-xl font-display font-bold tracking-tight gradient-text">Aura AI</h1>
-              <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Overview</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Overview</p>
             </div>
           </div>
-          <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-white/5 transition-all text-text-muted hover:text-text" title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+          <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-white/5 transition-all text-muted-foreground hover:text-foreground" title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
         </div>
         <nav className="flex flex-col gap-1">
-          <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold mb-3 px-4">Dev</p>
-          <NavLink to="/collab" className={({ isActive }) => `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${isActive ? 'bg-white/10 text-text shadow-lg border border-white/10' : 'text-text-muted hover:text-text hover:bg-white/5'}`}>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-3 px-4">Dev</p>
+          <NavLink to="/collab" className={({ isActive }) => `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${isActive ? 'bg-white/10 text-foreground shadow-lg border border-white/10' : 'text-muted-foreground hover:text-foreground hover:bg-white/5'}`}>
             <GitBranch className="w-5 h-5 group-hover:text-purple-400" />
             Collab Board
           </NavLink>
-          <NavLink to="/missionhq" className={({ isActive }) => `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${isActive ? 'bg-white/10 text-text shadow-lg border border-white/10' : 'text-text-muted hover:text-text hover:bg-white/5'}`}>
+          <NavLink to="/missionhq" className={({ isActive }) => `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${isActive ? 'bg-white/10 text-foreground shadow-lg border border-white/10' : 'text-muted-foreground hover:text-foreground hover:bg-white/5'}`}>
             <Radar className="w-5 h-5 group-hover:text-purple-400" />
             Mission HQ
           </NavLink>
-          <NavLink to="/overview" className={({ isActive }) => `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${isActive ? 'bg-white/10 text-text shadow-lg border border-white/10' : 'text-text-muted hover:text-text hover:bg-white/5'}`}>
+          <NavLink to="/overview" className={({ isActive }) => `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${isActive ? 'bg-white/10 text-foreground shadow-lg border border-white/10' : 'text-muted-foreground hover:text-foreground hover:bg-white/5'}`}>
             <LayoutDashboard className="w-5 h-5 group-hover:text-purple-400" />
             Overview
           </NavLink>
@@ -87,19 +82,19 @@ export function OverviewDashboard() {
         <div className="flex flex-col gap-8">
           <div>
             <h1 className="text-3xl font-display font-bold gradient-text">Sprint Overview</h1>
-            <p className="text-text-muted mt-1">Goal queue and team workload at a glance</p>
+            <p className="text-muted-foreground mt-1">Goal queue and team workload at a glance</p>
           </div>
 
           {/* Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Total Goals', value: total,    color: 'text-text' },
+              { label: 'Total Goals', value: total,    color: 'text-foreground' },
               { label: 'Done',        value: done,     color: 'text-green-400' },
               { label: 'Active',      value: active,   color: 'text-blue-400' },
-              { label: 'Queued',      value: queued,   color: 'text-text-muted' },
+              { label: 'Queued',      value: queued,   color: 'text-muted-foreground' },
             ].map(stat => (
               <div key={stat.label} className="glass-card p-5">
-                <p className="text-xs text-text-muted uppercase tracking-widest font-bold mb-2">{stat.label}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-2">{stat.label}</p>
                 <p className={`text-4xl font-display font-bold ${stat.color}`}>{stat.value}</p>
                 <div className="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden">
                   <div className={`h-full rounded-full ${stat.label === 'Done' ? 'bg-green-500' : stat.label === 'Active' ? 'bg-blue-500' : stat.label === 'Queued' ? 'bg-white/20' : 'bg-blue-500'}`} style={{ width: stat.label === 'Total Goals' ? '100%' : `${total > 0 ? (stat.value / total) * 100 : 0}%` }} />
@@ -111,7 +106,7 @@ export function OverviewDashboard() {
           {/* Progress Bar */}
           <div className="glass-card p-5">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-sm font-bold text-text-muted uppercase tracking-widest">Sprint Progress</span>
+              <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Sprint Progress</span>
               <span className="text-sm font-bold text-blue-400">{progress}%</span>
             </div>
             <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
@@ -122,7 +117,7 @@ export function OverviewDashboard() {
                 transition={{ duration: 0.8, ease: 'easeOut' }}
               />
             </div>
-            <div className="flex justify-between mt-2 text-xs text-text-muted">
+            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
               <span>{done} completed</span>
               <span>{total - done} remaining</span>
             </div>
@@ -134,7 +129,7 @@ export function OverviewDashboard() {
               <Bot className="w-5 h-5 text-blue-400" /> Team Workload
             </h2>
             {!agents && (
-              <div className="flex items-center gap-2 text-text-muted py-4">
+              <div className="flex items-center gap-2 text-muted-foreground py-4">
                 <Loader2 className="w-4 h-4 animate-spin" /> Loading...
               </div>
             )}
@@ -143,7 +138,7 @@ export function OverviewDashboard() {
                 const agentGoals = goals?.filter(g => g.assignee === agent.name) ?? [];
                 const activeGoal = agentGoals.find(g => g.status === 'ACTIVE' || g.status === 'WORKING');
                 const queuedCount = agentGoals.filter(g => g.status === 'QUEUED').length;
-                const status = getAgentOnlineStatus(agent.lastSeen);
+                const status = agent.isOnline ? 'online' : (agent.lastSeen ? 'offline' : 'never');
 
                 const colorClass = agent.color === 'purple' ? 'bg-purple-600/20 border-purple-500/30 text-purple-400'
                   : agent.color === 'blue' ? 'bg-blue-600/20 border-blue-500/30 text-blue-400'
@@ -158,17 +153,17 @@ export function OverviewDashboard() {
                       <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${status === 'online' ? 'bg-green-400 animate-pulse' : status === 'offline' ? 'bg-gray-500' : 'bg-gray-600 opacity-40'}`} />
                     </div>
                     <div className="text-center w-full">
-                      <p className="text-xs font-bold text-text/80 truncate w-full">{agent.name}</p>
+                      <p className="text-xs font-bold text-foreground/80 truncate w-full">{agent.name}</p>
                       <p className={`text-[9px] font-bold uppercase tracking-wider ${status === 'online' ? 'text-green-400' : status === 'offline' ? 'text-gray-500' : 'text-gray-600'}`}>
                         {status === 'online' ? 'Online' : status === 'offline' ? 'Offline' : 'Never'}
                       </p>
                     </div>
                     <div className="w-full text-center">
-                      <p className="text-[10px] text-text-muted truncate" title={activeGoal?.title ?? 'Idle'}>
+                      <p className="text-[10px] text-muted-foreground truncate" title={activeGoal?.title ?? 'Idle'}>
                         {activeGoal ? `#${activeGoal.number}` : 'Idle'}
                       </p>
                       {queuedCount > 0 && (
-                        <p className="text-[9px] text-text-muted/60">{queuedCount} queued</p>
+                        <p className="text-[9px] text-muted-foreground/60">{queuedCount} queued</p>
                       )}
                     </div>
                   </div>
@@ -191,7 +186,7 @@ export function OverviewDashboard() {
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
                       sortStatus === s
                         ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400'
-                        : 'bg-white/5 border border-border text-text-muted hover:bg-white/10'
+                        : 'bg-white/5 border border-border text-muted-foreground hover:bg-white/10'
                     }`}
                   >
                     {s === 'all' ? 'All' : s}
@@ -201,7 +196,7 @@ export function OverviewDashboard() {
             </div>
 
             {!goals && (
-              <div className="flex items-center gap-2 text-text-muted py-8">
+              <div className="flex items-center gap-2 text-muted-foreground py-8">
                 <Loader2 className="w-4 h-4 animate-spin" /> Loading...
               </div>
             )}
@@ -210,11 +205,11 @@ export function OverviewDashboard() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-text-muted pb-3 pr-4">#</th>
-                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-text-muted pb-3 pr-4">Title</th>
-                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-text-muted pb-3 pr-4">Assignee</th>
-                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-text-muted pb-3 pr-4">Status</th>
-                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-text-muted pb-3">Completed</th>
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground pb-3 pr-4">#</th>
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground pb-3 pr-4">Title</th>
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground pb-3 pr-4">Assignee</th>
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground pb-3 pr-4">Status</th>
+                    <th className="text-left text-[10px] font-bold uppercase tracking-widest text-muted-foreground pb-3">Completed</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -228,16 +223,16 @@ export function OverviewDashboard() {
                         transition={{ delay: i * 0.02 }}
                         className="border-b border-border/50 hover:bg-white/[0.02] transition-colors"
                       >
-                        <td className="py-3 pr-4 text-xs font-bold text-text-muted">{goal.number}</td>
-                        <td className="py-3 pr-4 text-sm font-medium text-text/90">{goal.title}</td>
-                        <td className="py-3 pr-4 text-xs text-text-muted">{goal.assignee ?? '—'}</td>
+                        <td className="py-3 pr-4 text-xs font-bold text-muted-foreground">{goal.number}</td>
+                        <td className="py-3 pr-4 text-sm font-medium text-foreground/90">{goal.title}</td>
+                        <td className="py-3 pr-4 text-xs text-muted-foreground">{goal.assignee ?? '—'}</td>
                         <td className="py-3 pr-4">
                           <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${cfg.className}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                             {cfg.label}
                           </span>
                         </td>
-                        <td className="py-3 text-xs text-text-muted">{formatDate(goal.completedAt)}</td>
+                        <td className="py-3 text-xs text-muted-foreground">{formatDate(goal.completedAt)}</td>
                       </motion.tr>
                     );
                   })}

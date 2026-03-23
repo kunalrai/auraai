@@ -235,17 +235,17 @@ export function AIAssistant({ doctor }: AssistantProps) {
             <Bot className="text-blue-400 w-7 h-7" />
           </div>
           <div>
-            <h2 className="text-2xl font-display font-bold text-text/90">Aura AI</h2>
+            <h2 className="text-2xl font-display font-bold text-foreground/90">Aura AI</h2>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Neural Engine Active</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Neural Engine Active</p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <Sparkles className="w-5 h-5 text-blue-400/50 animate-pulse" />
           <div className="w-px h-8 bg-border" />
-          <button className="p-2 hover:bg-white/5 rounded-lg transition-all text-text-muted hover:text-text">
+          <button className="p-2 hover:bg-white/5 rounded-lg transition-all text-muted-foreground hover:text-foreground">
             <Calendar className="w-5 h-5" />
           </button>
         </div>
@@ -273,8 +273,8 @@ export function AIAssistant({ doctor }: AssistantProps) {
                 </div>
                 <div className={`p-5 rounded-2xl font-sans leading-relaxed ${
                   msg.role === 'user' 
-                    ? 'bg-white/10 text-text/90 border border-border' 
-                    : 'bg-blue-600/5 text-text/80 border border-blue-500/10'
+                    ? 'bg-white/10 text-foreground/90 border border-border' 
+                    : 'bg-blue-600/5 text-foreground/80 border border-blue-500/10'
                 }`}>
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                 </div>
@@ -288,7 +288,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
               <div className="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
                 <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
               </div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Aura is processing...</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Aura is processing...</p>
             </div>
           </div>
         )}
@@ -315,7 +315,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
             </button>
             <button
               onClick={cancelOverride}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-border text-text-muted font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-border text-muted-foreground font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all"
             >
               <XCircle className="w-3.5 h-3.5" />
               Cancel
@@ -331,7 +331,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask Aura to schedule, remind, or assist..."
-            className="w-full p-5 pr-16 bg-white/5 border border-border rounded-2xl focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all text-sm text-text"
+            className="w-full p-5 pr-16 bg-white/5 border border-border rounded-2xl focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all text-sm text-foreground"
           />
           <button
             type="submit"
@@ -342,11 +342,11 @@ export function AIAssistant({ doctor }: AssistantProps) {
           </button>
         </form>
         <div className="mt-4 flex items-center justify-center gap-6">
-          <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
             Try: "Schedule Sarah Miller for tomorrow at 2 PM"
           </p>
           <div className="w-1 h-1 bg-border rounded-full" />
-          <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
             "Remind all patients for today"
           </p>
         </div>

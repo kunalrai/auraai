@@ -83,7 +83,7 @@ export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProp
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-5xl font-display font-bold tracking-tight gradient-text">Calendar</h2>
-          <p className="text-text-muted font-sans mt-2">Synchronized with your Google Calendar.</p>
+          <p className="text-muted-foreground font-sans mt-2">Synchronized with your Google Calendar.</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -96,14 +96,14 @@ export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProp
           <button
             onClick={fetchGoogleEvents}
             disabled={loading || !googleToken}
-            className="p-3 bg-white/5 border border-border rounded-xl hover:bg-white/10 transition-all text-text-muted hover:text-text disabled:opacity-50"
+            className="p-3 bg-white/5 border border-border rounded-xl hover:bg-white/10 transition-all text-muted-foreground hover:text-foreground disabled:opacity-50"
           >
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <div className="flex items-center bg-white/5 border border-border rounded-xl p-1">
-            <button onClick={prevMonth} className="p-2 hover:bg-white/10 rounded-lg transition-all text-text-muted hover:text-text"><ChevronLeft className="w-5 h-5" /></button>
-            <span className="px-6 font-bold text-sm uppercase tracking-widest text-text">{format(currentMonth, 'MMMM yyyy')}</span>
-            <button onClick={nextMonth} className="p-2 hover:bg-white/10 rounded-lg transition-all text-text-muted hover:text-text"><ChevronRight className="w-5 h-5" /></button>
+            <button onClick={prevMonth} className="p-2 hover:bg-white/10 rounded-lg transition-all text-muted-foreground hover:text-foreground"><ChevronLeft className="w-5 h-5" /></button>
+            <span className="px-6 font-bold text-sm uppercase tracking-widest text-foreground">{format(currentMonth, 'MMMM yyyy')}</span>
+            <button onClick={nextMonth} className="p-2 hover:bg-white/10 rounded-lg transition-all text-muted-foreground hover:text-foreground"><ChevronRight className="w-5 h-5" /></button>
           </div>
         </div>
       </header>
@@ -120,7 +120,7 @@ export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProp
           <div className="glass-card overflow-hidden glow">
             <div className="grid grid-cols-7 border-b border-border bg-white/[0.02]">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="py-4 text-center text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                <div key={day} className="py-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   {day}
                 </div>
               ))}
@@ -140,7 +140,7 @@ export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProp
                     key={idx} 
                     className={`aspect-square border-b border-r border-border p-3 hover:bg-white/[0.02] transition-all relative group ${!isCurrentMonth ? 'opacity-20' : ''}`}
                   >
-                    <span className={`text-xs font-bold ${isToday ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center' : 'text-text-muted'}`}>
+                    <span className={`text-xs font-bold ${isToday ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center' : 'text-muted-foreground'}`}>
                       {format(day, 'd')}
                     </span>
                     <div className="mt-2 space-y-1">
@@ -156,7 +156,7 @@ export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProp
                         </a>
                       ))}
                       {dayEvents.length > 2 && (
-                        <div className="text-[8px] text-text-muted font-bold pl-1">
+                        <div className="text-[8px] text-muted-foreground font-bold pl-1">
                           + {dayEvents.length - 2} more
                         </div>
                       )}
@@ -170,7 +170,7 @@ export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProp
 
         <div className="space-y-8">
           <div>
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted mb-6">Upcoming Events</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-6">Upcoming Events</h3>
             <div className="space-y-4">
               {loading ? (
                 <div className="space-y-4">
@@ -179,7 +179,7 @@ export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProp
                   ))}
                 </div>
               ) : events.length === 0 ? (
-                <div className="text-center py-12 text-text-muted font-sans italic">No events scheduled.</div>
+                <div className="text-center py-12 text-muted-foreground font-sans italic">No events scheduled.</div>
               ) : (
                 events.slice(0, 5).map(event => {
                   const start = event.start.dateTime ? new Date(event.start.dateTime) : new Date(event.start.date!);
@@ -191,8 +191,8 @@ export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProp
                       rel="noopener noreferrer"
                       className="block glass-card p-5 hover:bg-white/[0.04] transition-all border-l-4 border-l-blue-500 group"
                     >
-                      <h4 className="font-bold text-text/90 text-sm mb-2 group-hover:text-blue-400 transition-colors">{event.summary}</h4>
-                      <div className="flex items-center gap-2 text-[10px] text-text-muted font-bold uppercase tracking-wider">
+                      <h4 className="font-bold text-foreground/90 text-sm mb-2 group-hover:text-blue-400 transition-colors">{event.summary}</h4>
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                         <CalendarIcon className="w-3 h-3" />
                         {format(start, 'MMM d, h:mm a')}
                       </div>
@@ -205,7 +205,7 @@ export function CalendarView({ doctor, googleToken, onReauth }: CalendarViewProp
 
           <div className="glass-card p-6 bg-blue-600/5 border-blue-500/20">
             <h4 className="text-sm font-bold text-blue-400 mb-2">Aura Tip</h4>
-            <p className="text-xs text-text-muted leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               "I can automatically remind patients about these events. Just ask me to 'send reminders for tomorrow's appointments'."
             </p>
           </div>
