@@ -18,10 +18,11 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const STATUS_CONFIG = {
-  DONE:   { label: 'Done',   className: 'bg-green-500/15 text-green-400 border-green-500/30',  dot: 'bg-green-400' },
-  ACTIVE: { label: 'Active', className: 'bg-blue-500/15 text-blue-400 border-blue-500/30',    dot: 'bg-blue-400 animate-pulse' },
-  QUEUED: { label: 'Queued', className: 'bg-white/5 text-muted-foreground border-white/10',          dot: 'bg-text-muted/40' },
+const STATUS_CONFIG: Record<string, { label: string; className: string; dot: string }> = {
+  DONE:    { label: 'Done',    className: 'bg-green-500/15 text-green-400 border-green-500/30', dot: 'bg-green-400' },
+  ACTIVE:  { label: 'Active',  className: 'bg-blue-500/15 text-blue-400 border-blue-500/30',   dot: 'bg-blue-400 animate-pulse' },
+  WORKING: { label: 'Working', className: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30', dot: 'bg-yellow-400 animate-pulse' },
+  QUEUED:  { label: 'Queued',  className: 'bg-white/5 text-muted-foreground border-white/10', dot: 'bg-muted-foreground/40' },
 };
 
 function formatMessageTime(timestamp: number) {
@@ -359,7 +360,7 @@ export function CollabDashboard() {
           <ScrollArea className="max-h-[480px] pr-2">
             <div className="flex flex-col gap-3">
               {goals?.map((goal, i) => {
-                const cfg = STATUS_CONFIG[goal.status];
+                const cfg = STATUS_CONFIG[goal.status] ?? STATUS_CONFIG.QUEUED;
                 return (
                   <motion.div
                     key={goal._id}
