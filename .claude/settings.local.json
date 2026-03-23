@@ -6,7 +6,12 @@
       "Bash(npm install:*)",
       "Bash(npx tsc:*)",
       "Bash(npm run:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(python3 -c \"import sys,json; goals=json.load\\(sys.stdin\\); print\\(''''Last goal number:'''', max\\(g[''''number''''] for g in goals\\)\\); print\\(''''Active/Queued:'''', [\\(g[''''number''''], g[''''status''''], g[''''title'''']\\) for g in goals if g[''''status''''] in [''''ACTIVE'''',''''QUEUED'''',''''WORKING'''']]\\)\")",
+      "Bash(python3 -c \"import sys,json; msgs=json.load\\(sys.stdin\\); [print\\(f''''[{m[\"\"author\"\"]}]: {m[\"\"body\"\"]}''''\\) for m in msgs[-10:]]\")",
+      "Bash(python3 -c \"import sys,json; msgs=json.load\\(sys.stdin\\); [print\\(f''''[{m[\"\"author\"\"]}]: {m[\"\"body\"\"]}''''\\) for m in msgs[-5:]]\")",
+      "Bash(node -e \":*)",
+      "Skill(update-config)"
     ]
   }
 }
