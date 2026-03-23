@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Doctor } from '../types.ts';
 import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon, Sparkles, Bot, Settings, GitBranch, Radar } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -18,9 +19,10 @@ interface LayoutProps {
   setView: (view: AppView) => void;
   theme: 'dark' | 'light';
   toggleTheme: () => void;
+  appointmentCount?: number;
 }
 
-export function Layout({ children, doctor, onLogout, currentView, setView, theme, toggleTheme }: LayoutProps) {
+export function Layout({ children, doctor, onLogout, currentView, setView, theme, toggleTheme, appointmentCount = 0 }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-bg text-text font-sans flex flex-col md:flex-row transition-colors duration-300">
@@ -130,18 +132,13 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
               <GitBranch className={cn("w-5 h-5 transition-colors", currentView === 'collab' ? "text-purple-400" : "group-hover:text-purple-400")} />
               Collab Board
             </button>
-            <button
-              onClick={() => setView('missionhq')}
-              className={cn(
-                "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group w-full mt-1",
-                currentView === 'missionhq'
-                  ? "bg-white/10 text-text shadow-lg border border-white/10"
-                  : "text-text-muted hover:text-text hover:bg-white/5"
-              )}
+            <Link
+              to="/missionhq"
+              className="flex items-center gap-4 p-4 rounded-xl font-medium transition-all group w-full mt-1 text-text-muted hover:text-text hover:bg-white/5"
             >
-              <Radar className={cn("w-5 h-5 transition-colors", currentView === 'missionhq' ? "text-purple-400" : "group-hover:text-purple-400")} />
+              <Radar className="w-5 h-5 transition-colors group-hover:text-purple-400" />
               Mission HQ
-            </button>
+            </Link>
           </div>
         </nav>
 
@@ -177,12 +174,18 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
         {/* Floating AI Button */}
         {currentView !== 'assistant' && (
           <button
-            onClick={() => setView('assistant')}
+            onClick={() => {
+              localStorage.setItem('aura_assistant_last_opened', Date.now().toString());
+              setView('assistant');
+            }}
             className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 text-white rounded-full shadow-[0_0_30px_rgba(37,99,235,0.5)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all group z-50 border border-blue-400/30"
             title="Ask Aura AI"
           >
             <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20 group-hover:opacity-40" />
             <Bot className="w-8 h-8 relative z-10" />
+            {appointmentCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-bg animate-pulse" />
+            )}
             <div className="absolute -top-12 right-0 bg-card border border-border px-4 py-2 rounded-xl text-xs font-bold shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
               Need help? Ask Aura
             </div>

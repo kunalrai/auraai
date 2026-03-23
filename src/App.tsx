@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, query, collection, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { auth, loginWithGoogle, logout, db, googleProvider } from './firebase';
 import { Doctor } from './types.ts';
 import { Layout } from './components/Layout.tsx';
@@ -16,6 +17,16 @@ import { motion, AnimatePresence } from 'motion/react';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 export default function App() {
+  const location = useLocation();
+
+  // Dev tools — accessible without auth
+  if (location.pathname === '/missionhq') {
+    return <MissionHQ />;
+  }
+  if (location.pathname === '/collab') {
+    return <CollabDashboard />;
+  }
+
   const [user, setUser] = useState<User | null>(null);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +34,7 @@ export default function App() {
   type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq';
   const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getItem('google_token'));
   const [theme, setTheme] = useState<'dark' | 'light'>(localStorage.getItem('theme') as 'dark' | 'light' || 'dark');
+  const [appointmentCount, setAppointmentCount] = useState(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
@@ -97,6 +109,22 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Track new appointments for notification badge
+  useEffect(() => {
+    if (!doctor?.uid) return;
+    const lastOpened = parseInt(localStorage.getItem('aura_assistant_last_opened') || '0');
+    const q = query(collection(db, 'doctors', doctor.uid, 'appointments'), orderBy('createdAt', 'desc'), limit(1));
+    const unsub = onSnapshot(q, (snap) => {
+      if (snap.empty) return;
+      const latest = snap.docs[0].data();
+      const createdAt = latest.createdAt?.toDate?.()?.getTime() || 0;
+      if (createdAt > lastOpened) {
+        setAppointmentCount(prev => prev + 1);
+      }
+    });
+    return () => unsub();
+  }, [doctor?.uid]);
 
   if (loading) {
     return (
@@ -179,9 +207,10 @@ export default function App() {
       onLogout={handleLogout}
       currentView={view as AppView}
       setView={setView as (v: AppView) => void}
-      theme={theme}
-      toggleTheme={toggleTheme}
-    >
+        theme={theme}
+        toggleTheme={toggleTheme}
+        appointmentCount={appointmentCount}
+      >
       <AnimatePresence mode="wait">
         {view === 'dashboard' && (
           <motion.div
