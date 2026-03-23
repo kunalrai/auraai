@@ -8,6 +8,9 @@ import { DoctorDashboard } from './components/DoctorDashboard.tsx';
 import { AIAssistant } from './components/AIAssistant.tsx';
 import { CalendarView } from './components/CalendarView.tsx';
 import { PatientsView } from './components/PatientsView.tsx';
+import { SettingsView } from './components/SettingsView.tsx';
+import { CollabDashboard } from './components/CollabDashboard.tsx';
+import { MissionHQ } from './components/MissionHQ.tsx';
 import { LogIn, Calendar, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
@@ -16,7 +19,8 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<'dashboard' | 'assistant' | 'calendar' | 'patients'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq'>('dashboard');
+  type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq';
   const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getItem('google_token'));
   const [theme, setTheme] = useState<'dark' | 'light'>(localStorage.getItem('theme') as 'dark' | 'light' || 'dark');
 
@@ -170,11 +174,11 @@ export default function App() {
   }
 
   return (
-    <Layout 
-      doctor={doctor} 
-      onLogout={handleLogout} 
-      currentView={view} 
-      setView={setView}
+    <Layout
+      doctor={doctor}
+      onLogout={handleLogout}
+      currentView={view as AppView}
+      setView={setView as (v: AppView) => void}
       theme={theme}
       toggleTheme={toggleTheme}
     >
@@ -224,6 +228,39 @@ export default function App() {
             className="flex-1"
           >
             <PatientsView doctor={doctor!} />
+          </motion.div>
+        )}
+        {view === 'settings' && (
+          <motion.div
+            key="settings"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex-1"
+          >
+            <SettingsView doctor={doctor!} onDoctorUpdate={(updated) => setDoctor(updated)} />
+          </motion.div>
+        )}
+        {view === 'collab' && (
+          <motion.div
+            key="collab"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex-1"
+          >
+            <CollabDashboard />
+          </motion.div>
+        )}
+        {view === 'missionhq' && (
+          <motion.div
+            key="missionhq"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex-1"
+          >
+            <MissionHQ />
           </motion.div>
         )}
       </AnimatePresence>

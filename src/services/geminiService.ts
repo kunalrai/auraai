@@ -9,6 +9,7 @@ export interface BookingDetails {
   startTime: string; // ISO string
   notes?: string;
   reminderType?: 'text' | 'phone' | 'email' | 'none';
+  recurrence?: { frequency: 'weekly' | 'monthly'; count: number };
 }
 
 export const parseBookingRequest = async (prompt: string, currentDateTime: string): Promise<BookingDetails | null> => {
@@ -27,7 +28,14 @@ export const parseBookingRequest = async (prompt: string, currentDateTime: strin
           patientContact: { type: Type.STRING },
           startTime: { type: Type.STRING, description: "ISO 8601 format" },
           notes: { type: Type.STRING },
-          reminderType: { type: Type.STRING, enum: ["text", "phone", "email", "none"] }
+          reminderType: { type: Type.STRING, enum: ["text", "phone", "email", "none"] },
+          recurrence: {
+            type: Type.OBJECT,
+            properties: {
+              frequency: { type: Type.STRING, enum: ["weekly", "monthly"] },
+              count: { type: Type.INTEGER }
+            }
+          }
         },
         required: ["patientName", "startTime"]
       }

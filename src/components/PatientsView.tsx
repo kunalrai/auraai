@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy, Timestamp, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
-import { Doctor, Patient } from '../types.ts';
-import { User, Phone, Mail, Plus, Trash2, MessageSquare, PhoneCall, Send, X, Search } from 'lucide-react';
+import { Doctor, Patient, Appointment } from '../types.ts';
+import { User, Phone, Mail, Plus, Trash2, MessageSquare, PhoneCall, Send, X, Search, History, ChevronDown, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { format } from 'date-fns';
+import { generateReminderMessage } from '../services/geminiService.ts';
 
 interface PatientsViewProps {
   doctor: Doctor;
@@ -16,6 +18,25 @@ export function PatientsView({ doctor }: PatientsViewProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newPatient, setNewPatient] = useState({ name: '', phone: '', email: '' });
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
+  const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
+  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
+
+  const toggleHistory = (id: string) => {
+    setExpandedHistory(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (!doctor?.uid) return;
+    const q = query(collection(db, 'doctors', doctor.uid, 'appointments'), orderBy('startTime', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      setAllAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)));
+    });
+    return () => unsub();
+  }, [doctor.uid]);
 
   useEffect(() => {
     if (!doctor?.uid) return;
@@ -56,6 +77,28 @@ export function PatientsView({ doctor }: PatientsViewProps) {
       await deleteDoc(doc(db, 'doctors', doctor.uid, 'patients', id));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `doctors/${doctor.uid}/patients/${id}`);
+    }
+  };
+
+  const sendEmailReminder = async (patient: Patient) => {
+    if (!patient.email) {
+      alert('Patient email address is required.');
+      return;
+    }
+    try {
+      const nextVisit = allAppointments.find(a =>
+        a.patientName.toLowerCase() === patient.name.toLowerCase() && a.status === 'scheduled'
+      );
+      const startTime = nextVisit
+        ? nextVisit.startTime.toDate().toISOString()
+        : new Date(Date.now() + 86400000).toISOString();
+      const body = await generateReminderMessage(patient.name, doctor.name, startTime, 'email');
+      const subject = encodeURIComponent(`Appointment Reminder — Dr. ${doctor.name}`);
+      window.open(`mailto:${patient.email}?subject=${subject}&body=${encodeURIComponent(body)}`, '_blank');
+      setSendingReminder(patient.id);
+      setTimeout(() => setSendingReminder(null), 2000);
+    } catch (error) {
+      console.error('Email reminder error:', error);
     }
   };
 
@@ -215,7 +258,7 @@ export function PatientsView({ doctor }: PatientsViewProps) {
 
               <div className="mt-auto pt-6 border-t border-border">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted mb-4">Send Reminder</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   <button
                     onClick={() => sendReminder(patient, 'call')}
                     className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-border hover:bg-white/10 hover:border-white/20 transition-all group/btn"
@@ -237,6 +280,13 @@ export function PatientsView({ doctor }: PatientsViewProps) {
                     <MessageSquare className="w-5 h-5 text-green-400/50 group-hover/btn:text-green-400" />
                     <span className="text-[9px] font-bold uppercase tracking-widest">WA</span>
                   </button>
+                  <button
+                    onClick={() => sendEmailReminder(patient)}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-border hover:bg-white/10 hover:border-white/20 transition-all group/btn"
+                  >
+                    <Mail className="w-5 h-5 text-yellow-400/50 group-hover/btn:text-yellow-400" />
+                    <span className="text-[9px] font-bold uppercase tracking-widest">Email</span>
+                  </button>
                 </div>
                 {sendingReminder === patient.id && (
                   <motion.p
@@ -248,6 +298,65 @@ export function PatientsView({ doctor }: PatientsViewProps) {
                   </motion.p>
                 )}
               </div>
+
+              {/* Visit History */}
+              {(() => {
+                const visits = allAppointments.filter(a =>
+                  a.patientName.toLowerCase() === patient.name.toLowerCase()
+                );
+                return (
+                  <div className="border-t border-border pt-4">
+                    <button
+                      onClick={() => toggleHistory(patient.id)}
+                      className="flex items-center justify-between w-full text-[10px] font-bold uppercase tracking-widest text-text-muted hover:text-text transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <History className="w-3 h-3" />
+                        Visit History ({visits.length})
+                      </span>
+                      <ChevronDown className={`w-3 h-3 transition-transform ${expandedHistory.has(patient.id) ? 'rotate-180' : ''}`} />
+                    </button>
+                    <AnimatePresence>
+                      {expandedHistory.has(patient.id) && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden mt-3 space-y-2"
+                        >
+                          {visits.length === 0 ? (
+                            <p className="text-xs text-text-muted italic">No visits yet.</p>
+                          ) : visits.map(visit => (
+                            <div key={visit.id} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-border/50">
+                              <Clock className="w-3 h-3 text-text-muted mt-0.5 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-bold text-text/80">
+                                    {format(visit.startTime.toDate(), 'MMM d, yyyy')}
+                                  </span>
+                                  <span className="text-[10px] text-text-muted">
+                                    {format(visit.startTime.toDate(), 'p')}
+                                  </span>
+                                  <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${
+                                    visit.status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                    visit.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                    'bg-red-500/10 text-red-400 border-red-500/20'
+                                  }`}>
+                                    {visit.status}
+                                  </span>
+                                </div>
+                                {visit.notes && (
+                                  <p className="text-[11px] text-text-muted mt-1 truncate">{visit.notes}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })()}
             </motion.div>
           ))
         )}

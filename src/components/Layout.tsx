@@ -1,6 +1,6 @@
 import React from 'react';
 import { Doctor } from '../types.ts';
-import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon, Sparkles, Bot } from 'lucide-react';
+import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon, Sparkles, Bot, Settings, GitBranch, Radar } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -8,17 +8,20 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq';
+
 interface LayoutProps {
   children: React.ReactNode;
   doctor: Doctor | null;
   onLogout: () => void;
-  currentView: 'dashboard' | 'assistant' | 'calendar' | 'patients';
-  setView: (view: 'dashboard' | 'assistant' | 'calendar' | 'patients') => void;
+  currentView: AppView;
+  setView: (view: AppView) => void;
   theme: 'dark' | 'light';
   toggleTheme: () => void;
 }
 
 export function Layout({ children, doctor, onLogout, currentView, setView, theme, toggleTheme }: LayoutProps) {
+
   return (
     <div className="min-h-screen bg-bg text-text font-sans flex flex-col md:flex-row transition-colors duration-300">
       {/* Sidebar */}
@@ -100,6 +103,46 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             <Users className={cn("w-5 h-5 transition-colors", currentView === 'patients' ? "text-blue-400" : "group-hover:text-blue-400")} />
             Patients
           </button>
+          <button
+            onClick={() => setView('settings')}
+            className={cn(
+              "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group",
+              currentView === 'settings'
+                ? "bg-white/10 text-text shadow-lg border border-white/10"
+                : "text-text-muted hover:text-text hover:bg-white/5"
+            )}
+          >
+            <Settings className={cn("w-5 h-5 transition-colors", currentView === 'settings' ? "text-blue-400" : "group-hover:text-blue-400")} />
+            Settings
+          </button>
+
+          <div className="mt-4 mb-1">
+            <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold mb-3 px-4">Dev</p>
+            <button
+              onClick={() => setView('collab')}
+              className={cn(
+                "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group w-full",
+                currentView === 'collab'
+                  ? "bg-white/10 text-text shadow-lg border border-white/10"
+                  : "text-text-muted hover:text-text hover:bg-white/5"
+              )}
+            >
+              <GitBranch className={cn("w-5 h-5 transition-colors", currentView === 'collab' ? "text-purple-400" : "group-hover:text-purple-400")} />
+              Collab Board
+            </button>
+            <button
+              onClick={() => setView('missionhq')}
+              className={cn(
+                "flex items-center gap-4 p-4 rounded-xl font-medium transition-all group w-full mt-1",
+                currentView === 'missionhq'
+                  ? "bg-white/10 text-text shadow-lg border border-white/10"
+                  : "text-text-muted hover:text-text hover:bg-white/5"
+              )}
+            >
+              <Radar className={cn("w-5 h-5 transition-colors", currentView === 'missionhq' ? "text-purple-400" : "group-hover:text-purple-400")} />
+              Mission HQ
+            </button>
+          </div>
         </nav>
 
         <div className="mt-auto pt-6 border-t border-border flex flex-col gap-4">

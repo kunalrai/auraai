@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
-import { Doctor, ChatMessage } from '../types.ts';
-import { chatWithAssistant, parseBookingRequest } from '../services/geminiService.ts';
-import { Send, Bot, User, Sparkles, Calendar, Loader2 } from 'lucide-react';
+import { Doctor, Appointment, ChatMessage } from '../types.ts';
+import { chatWithAssistant, parseBookingRequest, BookingDetails } from '../services/geminiService.ts';
+import { Send, Bot, User, Sparkles, Calendar, Loader2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface AssistantProps {
@@ -16,13 +16,132 @@ export function AIAssistant({ doctor }: AssistantProps) {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [pendingBooking, setPendingBooking] = useState<BookingDetails | null>(null);
+  const [conflictWith, setConflictWith] = useState<Appointment | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!doctor?.uid) return;
+    const q = query(collection(db, 'doctors', doctor.uid, 'appointments'), orderBy('startTime', 'asc'));
+    const unsub = onSnapshot(q, (snap) => {
+      setAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)));
+    });
+    return () => unsub();
+  }, [doctor.uid]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const checkAvailability = (booking: BookingDetails): string | null => {
+    const avail = doctor.availability;
+    if (!avail || Object.keys(avail).length === 0) return null;
+    const date = new Date(booking.startTime);
+    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+    const dayAvail = avail[dayName];
+    if (!dayAvail) return `${dayName} is not a working day`;
+    const hh = date.getHours().toString().padStart(2, '0');
+    const mm = date.getMinutes().toString().padStart(2, '0');
+    const bookingTime = `${hh}:${mm}`;
+    if (bookingTime < dayAvail.start || bookingTime > dayAvail.end) {
+      return `${dayName} working hours are ${dayAvail.start}–${dayAvail.end}`;
+    }
+    return null;
+  };
+
+  const findConflict = (booking: BookingDetails): Appointment | null => {
+    const newStart = new Date(booking.startTime).getTime();
+    const thirtyMin = 30 * 60 * 1000;
+    return appointments.find(app => {
+      if (app.status === 'cancelled') return false;
+      return Math.abs(newStart - app.startTime.toDate().getTime()) < thirtyMin;
+    }) ?? null;
+  };
+
+  const writeAppointmentDoc = async (booking: BookingDetails, startTime: string) => {
+    const appointmentsRef = collection(db, 'doctors', doctor.uid, 'appointments');
+    await addDoc(appointmentsRef, {
+      doctorId: doctor.uid,
+      patientName: booking.patientName,
+      patientContact: booking.patientContact || '',
+      startTime: Timestamp.fromDate(new Date(startTime)),
+      status: 'scheduled',
+      reminderType: booking.reminderType || 'none',
+      reminderStatus: 'pending',
+      notes: booking.notes || '',
+      createdAt: Timestamp.now()
+    });
+  };
+
+  const writeAppointment = async (booking: BookingDetails) => {
+    await writeAppointmentDoc(booking, booking.startTime);
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: `Appointment scheduled for ${booking.patientName} on ${new Date(booking.startTime).toLocaleString()}. I'll send a reminder if requested.`
+    }]);
+  };
+
+  const generateRecurringDates = (startTime: string, recurrence: { frequency: 'weekly' | 'monthly'; count: number }): string[] => {
+    const dates: string[] = [];
+    const base = new Date(startTime);
+    for (let i = 0; i < recurrence.count; i++) {
+      const d = new Date(base);
+      if (recurrence.frequency === 'weekly') {
+        d.setDate(d.getDate() + i * 7);
+      } else {
+        d.setMonth(d.getMonth() + i);
+      }
+      dates.push(d.toISOString());
+    }
+    return dates;
+  };
+
+  const writeRecurringSeries = async (booking: BookingDetails) => {
+    const recurrence = booking.recurrence!;
+    const dates = generateRecurringDates(booking.startTime, recurrence);
+    const booked: string[] = [];
+    const skipped: string[] = [];
+
+    for (const date of dates) {
+      const conflict = findConflict({ ...booking, startTime: date });
+      if (conflict) {
+        skipped.push(date);
+      } else {
+        await writeAppointmentDoc(booking, date);
+        booked.push(date);
+      }
+    }
+
+    const bookedList = booked.map(d => `• ${new Date(d).toLocaleString()}`).join('\n');
+    const skippedNote = skipped.length > 0
+      ? `\n\n⚠️ ${skipped.length} date(s) skipped due to conflicts:\n${skipped.map(d => `• ${new Date(d).toLocaleString()}`).join('\n')}`
+      : '';
+
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: `Recurring appointments created for ${booking.patientName} (${recurrence.count}× ${recurrence.frequency}):\n${bookedList}${skippedNote}`
+    }]);
+  };
+
+  const confirmOverride = async () => {
+    if (!pendingBooking) return;
+    try {
+      await writeAppointment(pendingBooking);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: 'assistant', content: "I'm sorry, I encountered an error saving the appointment." }]);
+    }
+    setPendingBooking(null);
+    setConflictWith(null);
+  };
+
+  const cancelOverride = () => {
+    setPendingBooking(null);
+    setConflictWith(null);
+    setMessages(prev => [...prev, { role: 'assistant', content: 'Understood — booking cancelled. The appointment was not scheduled.' }]);
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,23 +158,30 @@ export function AIAssistant({ doctor }: AssistantProps) {
       const booking = await parseBookingRequest(userMessage, currentDateTime);
       
       if (booking) {
-        const appointmentsRef = collection(db, 'doctors', doctor.uid, 'appointments');
-        await addDoc(appointmentsRef, {
-          doctorId: doctor.uid,
-          patientName: booking.patientName,
-          patientContact: booking.patientContact || '',
-          startTime: Timestamp.fromDate(new Date(booking.startTime)),
-          status: 'scheduled',
-          reminderType: booking.reminderType || 'none',
-          reminderStatus: 'pending',
-          notes: booking.notes || '',
-          createdAt: Timestamp.now()
-        });
+        const availWarning = checkAvailability(booking);
+        if (availWarning) {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `⚠️ Outside working hours: ${availWarning}. The requested time for ${booking.patientName} falls outside your configured schedule. Please choose a different time.`
+          }]);
+          return;
+        }
 
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: `Perfect! I've scheduled an appointment for ${booking.patientName} on ${new Date(booking.startTime).toLocaleString()}. I'll make sure to send a reminder if requested.` 
-        }]);
+        if (booking.recurrence) {
+          await writeRecurringSeries(booking);
+        } else {
+          const conflict = findConflict(booking);
+          if (conflict) {
+            setPendingBooking(booking);
+            setConflictWith(conflict);
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: `⚠️ Conflict detected! ${conflict.patientName} is already scheduled at ${conflict.startTime.toDate().toLocaleString()} — within 30 minutes of the requested slot.\n\nDo you want to override and schedule anyway, or cancel?`
+            }]);
+          } else {
+            await writeAppointment(booking);
+          }
+        }
       } else {
         const response = await chatWithAssistant([...messages, { role: 'user', content: userMessage }], currentDateTime, doctor.name);
         setMessages(prev => [...prev, { role: 'assistant', content: response }]);
@@ -134,6 +260,36 @@ export function AIAssistant({ doctor }: AssistantProps) {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {pendingBooking && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="px-8 py-4 border-t border-yellow-500/20 bg-yellow-500/5 flex items-center gap-4"
+          >
+            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+            <p className="flex-1 text-sm text-yellow-300/80 font-medium">
+              Schedule <span className="font-bold text-yellow-300">{pendingBooking.patientName}</span> at {new Date(pendingBooking.startTime).toLocaleString()} despite the conflict?
+            </p>
+            <button
+              onClick={confirmOverride}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 font-bold text-xs uppercase tracking-widest hover:bg-yellow-500/30 transition-all"
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              Override
+            </button>
+            <button
+              onClick={cancelOverride}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-border text-text-muted font-bold text-xs uppercase tracking-widest hover:bg-white/10 transition-all"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              Cancel
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="p-8 border-t border-border bg-white/[0.01]">
         <form onSubmit={handleSend} className="relative">

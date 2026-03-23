@@ -6,7 +6,8 @@ export interface Doctor {
   specialty?: string;
   email: string;
   phone?: string;
-  availability?: Record<string, string[]>; // e.g., { "Monday": ["09:00", "10:00"] }
+  clinicName?: string;
+  availability?: Record<string, { start: string; end: string }>; // e.g., { "Monday": { start: "09:00", end: "17:00" } }
   createdAt: Timestamp;
 }
 
