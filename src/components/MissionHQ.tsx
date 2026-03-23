@@ -4,6 +4,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { Radar, Bot, User, CheckCircle2, Circle, Clock, Zap, ChevronRight, MessageSquare, X, GitBranch, Calendar, Sun, Moon, LayoutDashboard } from 'lucide-react';
+import { format, isToday, isYesterday, isAfter, subDays, startOfDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -73,6 +74,15 @@ function getColors(color: string) {
   return COLOR_MAP[color] ?? DEFAULT_COLORS;
 }
 
+function formatMessageTime(timestamp: number) {
+  const date = new Date(timestamp);
+  const now = new Date();
+  if (isToday(date)) return format(date, 'p');
+  if (isYesterday(date)) return 'Yesterday';
+  if (isAfter(date, startOfDay(subDays(now, 6)))) return format(date, 'EEEE');
+  return format(date, 'MMM d');
+}
+
 export function MissionHQ() {
   const goals    = useQuery(api.collab.listGoals);
   const messages = useQuery(api.collab.listMessages);
@@ -90,12 +100,6 @@ export function MissionHQ() {
   }, [theme]);
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
 
   const done    = goals?.filter(g => g.status === 'DONE').length   ?? 0;
   const active  = goals?.filter(g => g.status === 'ACTIVE').length ?? 0;
@@ -442,9 +446,9 @@ export function MissionHQ() {
             <MessageSquare className="w-4 h-4 text-purple-400" />
             Live Message Feed
           </h3>
-          <ScrollArea ref={scrollRef as React.RefObject<HTMLDivElement>} className="max-h-[60vh] pr-2">
+          <ScrollArea className="max-h-[60vh] pr-2">
             <div className="space-y-3">
-              {messages?.map((msg, i) => {
+              {messages?.slice().reverse().map((msg, i) => {
                 const agent = agentMap[msg.author];
                 const c = agent ? getColors(agent.color) : DEFAULT_COLORS;
                 const rightAlign = agent ? !isPlanner(agent) : false;
@@ -453,14 +457,19 @@ export function MissionHQ() {
                     key={msg._id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 + i * 0.015 }}
+                    transition={{ delay: i * 0.015 }}
                     className={`flex gap-3 ${rightAlign ? 'flex-row-reverse' : 'flex-row'}`}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border text-xs font-bold ${c.avatarBg} ${c.avatarBorder} ${c.avatarText}`}>
                       {msg.author[0]}
                     </div>
-                    <div className={`max-w-[78%] px-4 py-2.5 rounded-xl text-xs leading-relaxed border ${c.bubbleBg} ${c.bubbleBorder} text-foreground/80`}>
-                      {msg.body}
+                    <div className={`flex flex-col gap-1 max-w-[78%] ${rightAlign ? 'items-end' : 'items-start'}`}>
+                      <div className={`text-sm leading-relaxed px-4 py-2 rounded-xl border ${c.bubbleBg} ${c.bubbleBorder} text-foreground/80`}>
+                        {msg.body}
+                      </div>
+                      <span className="text-[9px] text-muted-foreground/50 px-1">
+                        {formatMessageTime(msg._creationTime)}
+                      </span>
                     </div>
                   </motion.div>
                 );

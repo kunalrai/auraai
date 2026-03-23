@@ -3,7 +3,11 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import { Doctor } from '../types.ts';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Phone, Stethoscope, Building2, CheckCircle, Clock } from 'lucide-react';
+import { User, Phone, Stethoscope, Building2, CheckCircle, Clock, Cpu } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -29,6 +33,17 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
   );
   const [savingAvail, setSavingAvail] = useState(false);
 
+  const aiModel = useQuery(api.settings.getAiModel, { userId: doctor.uid });
+  const saveAiModel = useMutation(api.settings.saveAiModel);
+  const [modelInput, setModelInput] = useState('');
+  const [savingModel, setSavingModel] = useState(false);
+
+  React.useEffect(() => {
+    if (aiModel !== undefined) {
+      setModelInput(aiModel ?? 'gemini-3-flash-preview');
+    }
+  }, [aiModel]);
+
   const saveAvailability = async () => {
     setSavingAvail(true);
     try {
@@ -43,6 +58,18 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
       handleFirestoreError(error, OperationType.UPDATE, `doctors/${doctor.uid}`);
     } finally {
       setSavingAvail(false);
+    }
+  };
+
+  const saveAiModelFn = async () => {
+    if (!modelInput.trim()) return;
+    setSavingModel(true);
+    try {
+      await saveAiModel({ userId: doctor.uid, aiModel: modelInput.trim() });
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } finally {
+      setSavingModel(false);
     }
   };
 
@@ -202,6 +229,40 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
           >
             {savingAvail ? 'Saving...' : 'Save Availability'}
           </button>
+        </div>
+      </motion.div>
+
+      {/* AI Model */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="glass-card p-8 space-y-6"
+      >
+        <h3 className="text-lg font-display font-bold text-foreground/90 flex items-center gap-3">
+          <Cpu className="w-5 h-5 text-blue-400" />
+          AI Model
+        </h3>
+        <p className="text-xs text-muted-foreground">Choose which AI model Aura uses for chat and appointment booking. Enter any OpenRouter-compatible model string.</p>
+        <div className="space-y-3">
+          <Input
+            value={modelInput}
+            onChange={e => setModelInput(e.target.value)}
+            placeholder="e.g. gemini-3-flash-preview, z-ai/glm-4.5-air:free"
+            className="max-w-md"
+          />
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={saveAiModelFn}
+              disabled={savingModel || !modelInput.trim()}
+              className="bg-blue-600 hover:bg-blue-500"
+            >
+              {savingModel ? 'Saving...' : 'Save Model'}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Default: <code className="text-muted-foreground/80">gemini-3-flash-preview</code>
+            </span>
+          </div>
         </div>
       </motion.div>
 

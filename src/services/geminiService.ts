@@ -6,15 +6,30 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 export interface BookingDetails {
   patientName: string;
   patientContact?: string;
-  startTime: string; // ISO string
+  startTime: string;
   notes?: string;
   reminderType?: 'text' | 'phone' | 'email' | 'none';
   recurrence?: { frequency: 'weekly' | 'monthly'; count: number };
 }
 
-export const parseBookingRequest = async (prompt: string, currentDateTime: string): Promise<BookingDetails | null> => {
+export interface ImagePart {
+  inlineData: {
+    mimeType: string;
+    data: string;
+  };
+}
+
+export interface TextPart {
+  text: string;
+}
+
+export type Part = TextPart | ImagePart;
+
+const DEFAULT_MODEL = "gemini-3-flash-preview";
+
+export const parseBookingRequest = async (prompt: string, currentDateTime: string, model: string = DEFAULT_MODEL): Promise<BookingDetails | null> => {
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model,
     contents: `Current date and time: ${currentDateTime}. 
     User request: "${prompt}". 
     Extract appointment details. If details are missing, return null. 
@@ -50,28 +65,42 @@ export const parseBookingRequest = async (prompt: string, currentDateTime: strin
   }
 };
 
-export const generateReminderMessage = async (patientName: string, doctorName: string, startTime: string, type: 'text' | 'email'): Promise<string> => {
+export const generateReminderMessage = async (patientName: string, doctorName: string, startTime: string, type: 'text' | 'email', model: string = DEFAULT_MODEL): Promise<string> => {
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model,
     contents: `Generate a polite ${type} reminder for ${patientName} about their appointment with Dr. ${doctorName} on ${format(new Date(startTime), 'PPPP p')}.`,
   });
   return response.text;
 };
 
-export const chatWithAssistant = async (history: { role: 'user' | 'assistant', content: string }[], currentDateTime: string, doctorName: string) => {
-  const chat = ai.chats.create({
-    model: "gemini-3-flash-preview",
+export const chatWithAssistant = async (
+  history: { role: 'user' | 'assistant', content: string }[],
+  currentDateTime: string,
+  doctorName: string,
+  model: string = DEFAULT_MODEL,
+  imageData?: { mimeType: string; data: string }
+) => {
+  const systemInstruction = `You are Aura, an AI employee for Dr. ${doctorName}. 
+  Your job is to manage appointments, answer patient queries, and help the doctor stay organized. 
+  Current date and time: ${currentDateTime}. 
+  Be professional, efficient, and empathetic. 
+  If a user wants to book an appointment, ask for their name and preferred time if not provided.
+  If the user sends an image, analyze it carefully and describe what you see, or extract any relevant information.`;
+
+  const lastMessage = history[history.length - 1].content;
+
+  const parts: Part[] = [{ text: lastMessage }];
+  if (imageData) {
+    parts.push({ inlineData: { mimeType: imageData.mimeType, data: imageData.data } });
+  }
+
+  const response = await ai.models.generateContent({
+    model,
+    contents: [{ role: "user", parts }],
     config: {
-      systemInstruction: `You are Aura, an AI employee for Dr. ${doctorName}. 
-      Your job is to manage appointments, answer patient queries, and help the doctor stay organized. 
-      Current date and time: ${currentDateTime}. 
-      Be professional, efficient, and empathetic. 
-      If a user wants to book an appointment, ask for their name and preferred time if not provided.`,
+      systemInstruction,
     }
   });
 
-  // Convert history to parts
-  const lastMessage = history[history.length - 1].content;
-  const response = await chat.sendMessage({ message: lastMessage });
-  return response.text;
+  return response.text ?? "";
 };

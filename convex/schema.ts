@@ -29,9 +29,20 @@ export default defineSchema({
     lastSeen: v.optional(v.number()),
   }),
 
-  docs: defineTable({
-    slug: v.string(),
+  kv: defineTable({
+    key: v.string(),
+    value: v.string(),
+  }).index("by_key", ["key"]),
+
+  settings: defineTable({
+    userId: v.string(),
+    aiModel: v.string(),
+  }).index("by_user", ["userId"]),
+
+  skills: defineTable({
+    agentName: v.string(), // "Riya" | "Michel" | "*" (global)
+    type: v.string(),      // "wakeup" | "protocol" | "onboarding"
     title: v.string(),
     body: v.string(),
-  }).index("by_slug", ["slug"]),
+  }).index("by_agent", ["agentName"]).index("by_agent_type", ["agentName", "type"]),
 });

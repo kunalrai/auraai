@@ -12,6 +12,7 @@ import type * as collab from "../collab.js";
 import type * as crons from "../crons.js";
 import type * as goals from "../goals.js";
 import type * as messages from "../messages.js";
+import type * as settings from "../settings.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   goals: typeof goals;
   messages: typeof messages;
+  settings: typeof settings;
 }>;
 
 /**

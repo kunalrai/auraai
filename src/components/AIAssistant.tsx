@@ -3,9 +3,11 @@ import { collection, addDoc, Timestamp, onSnapshot, query, orderBy } from 'fireb
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import { Doctor, Appointment, ChatMessage } from '../types.ts';
 import { chatWithAssistant, parseBookingRequest, BookingDetails } from '../services/geminiService.ts';
-import { Send, Bot, User, Sparkles, Calendar, Loader2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Calendar, Loader2, AlertTriangle, CheckCircle, XCircle, Paperclip, X, Image } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, isTomorrow } from 'date-fns';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 interface AssistantProps {
   doctor: Doctor;
@@ -21,6 +23,12 @@ export function AIAssistant({ doctor }: AssistantProps) {
   const [pendingBooking, setPendingBooking] = useState<BookingDetails | null>(null);
   const [conflictWith, setConflictWith] = useState<Appointment | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const aiModel = useQuery(api.settings.getAiModel, { userId: doctor.uid ?? "" });
+  const generateUploadUrl = useMutation(api.settings.generateUploadUrl);
+
+  const [selectedFile, setSelectedFile] = useState<{ name: string; mimeType: string; data: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!doctor?.uid) return;
@@ -84,6 +92,25 @@ export function AIAssistant({ doctor }: AssistantProps) {
     }
     return null;
   };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const validTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Unsupported file type. Please upload a PNG, JPG, or WebP image.' }]);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      setSelectedFile({ name: file.name, mimeType: file.type, data: base64 });
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const clearFile = () => setSelectedFile(null);
 
   const findConflict = (booking: BookingDetails): Appointment | null => {
     const newStart = new Date(booking.startTime).getTime();
@@ -188,7 +215,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
     try {
       const currentDateTime = new Date().toISOString();
       
-      const booking = await parseBookingRequest(userMessage, currentDateTime);
+      const booking = await parseBookingRequest(userMessage, currentDateTime, aiModel ?? undefined);
       
       if (booking) {
         const availWarning = checkAvailability(booking);
@@ -216,7 +243,13 @@ export function AIAssistant({ doctor }: AssistantProps) {
           }
         }
       } else {
-        const response = await chatWithAssistant([...messages, { role: 'user', content: userMessage }], currentDateTime, doctor.name);
+        const response = await chatWithAssistant(
+          [...messages, { role: 'user', content: userMessage }],
+          currentDateTime,
+          doctor.name,
+          aiModel ?? undefined,
+          selectedFile ?? undefined
+        );
         setMessages(prev => [...prev, { role: 'assistant', content: response }]);
       }
     } catch (error) {
@@ -224,6 +257,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
       setMessages(prev => [...prev, { role: 'assistant', content: "I'm sorry, I encountered an error. Please try again." }]);
     } finally {
       setIsTyping(false);
+      setSelectedFile(null);
     }
   };
 
@@ -325,22 +359,59 @@ export function AIAssistant({ doctor }: AssistantProps) {
       </AnimatePresence>
 
       <div className="p-8 border-t border-border bg-white/[0.01]">
-        <form onSubmit={handleSend} className="relative">
+        <AnimatePresence>
+          {selectedFile && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-3 flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl"
+            >
+              <Image className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <span className="text-xs text-blue-400 font-medium truncate flex-1">{selectedFile.name}</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Image attached</span>
+              <button
+                onClick={clearFile}
+                className="p-1 hover:bg-white/10 rounded transition-all text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div className="flex items-center gap-3">
           <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask Aura to schedule, remind, or assist..."
-            className="w-full p-5 pr-16 bg-white/5 border border-border rounded-2xl focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all text-sm text-foreground"
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={handleFileSelect}
+            className="hidden"
           />
           <button
-            type="submit"
-            disabled={isTyping || !input.trim()}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-3 bg-white text-black rounded-xl font-bold hover:bg-white/90 transition-all disabled:opacity-20 disabled:grayscale"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="p-3 rounded-xl bg-white/5 border border-border hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all shrink-0"
+            title="Attach image"
           >
-            <Send className="w-5 h-5" />
+            <Paperclip className="w-5 h-5" />
           </button>
-        </form>
+          <form onSubmit={handleSend} className="relative flex-1">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask Aura to schedule, remind, or assist..."
+              className="w-full p-5 pr-16 bg-white/5 border border-border rounded-2xl focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all text-sm text-foreground"
+            />
+            <button
+              type="submit"
+              disabled={isTyping || !input.trim()}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-3 bg-white text-black rounded-xl font-bold hover:bg-white/90 transition-all disabled:opacity-20 disabled:grayscale"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </form>
+        </div>
         <div className="mt-4 flex items-center justify-center gap-6">
           <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
             Try: "Schedule Sarah Miller for tomorrow at 2 PM"

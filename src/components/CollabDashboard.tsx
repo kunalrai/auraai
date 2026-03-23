@@ -4,6 +4,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Circle, Loader2, MessageSquare, Zap, Bot, User, GitBranch, Radar, Calendar, Sun, Moon, SendHorizonal, LayoutDashboard } from 'lucide-react';
+import { format, isToday, isYesterday, isAfter, subDays, startOfDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,15 @@ const STATUS_CONFIG = {
   ACTIVE: { label: 'Active', className: 'bg-blue-500/15 text-blue-400 border-blue-500/30',    dot: 'bg-blue-400 animate-pulse' },
   QUEUED: { label: 'Queued', className: 'bg-white/5 text-muted-foreground border-white/10',          dot: 'bg-text-muted/40' },
 };
+
+function formatMessageTime(timestamp: number) {
+  const date = new Date(timestamp);
+  const now = new Date();
+  if (isToday(date)) return format(date, 'p');
+  if (isYesterday(date)) return 'Yesterday';
+  if (isAfter(date, startOfDay(subDays(now, 6)))) return format(date, 'EEEE');
+  return format(date, 'MMM d');
+}
 
 export function CollabDashboard() {
   const goals    = useQuery(api.collab.listGoals);
@@ -326,7 +336,10 @@ export function CollabDashboard() {
                       {isMichel ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
                     </div>
                     <div className={`flex flex-col gap-1 max-w-[80%] ${isMichel ? 'items-start' : 'items-end'}`}>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{msg.author}</span>
+                      <div className={`flex items-baseline gap-2 ${isMichel ? 'flex-row' : 'flex-row-reverse'}`}>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{msg.author}</span>
+                        <span className="text-[9px] text-muted-foreground/60">{formatMessageTime(msg._creationTime)}</span>
+                      </div>
                       <div className={`text-sm leading-relaxed px-4 py-3 rounded-2xl border ${
                         isMichel
                           ? 'bg-purple-600/10 border-purple-500/20 text-foreground rounded-tl-sm'
