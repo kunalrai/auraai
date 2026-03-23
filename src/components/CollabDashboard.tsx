@@ -3,13 +3,20 @@ import { NavLink } from 'react-router-dom';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, Circle, Loader2, MessageSquare, Zap, Bot, User, GitBranch, Radar, Calendar, Sun, Moon, SendHorizonal, LayoutDashboard } from 'lucide-react';
-import { format, isToday, isYesterday, isAfter, subDays, startOfDay } from 'date-fns';
+import { CheckCircle2, Circle, Loader2, MessageSquare, Zap, Bot, User, GitBranch, Radar, Calendar, Sun, Moon, SendHorizonal, LayoutDashboard, Menu } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { format, isToday, isYesterday, isAfter, startOfDay, subDays } from 'date-fns';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 const STATUS_CONFIG = {
   DONE:   { label: 'Done',   className: 'bg-green-500/15 text-green-400 border-green-500/30',  dot: 'bg-green-400' },
@@ -62,10 +69,10 @@ export function CollabDashboard() {
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-bg text-foreground font-sans flex flex-row">
+    <div className="min-h-screen bg-bg text-foreground font-sans flex flex-col md:flex-row">
 
-      {/* Sidebar */}
-      <aside className="w-72 border-r border-border bg-card p-8 flex flex-col gap-10 flex-shrink-0">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-72 border-r border-border bg-card p-8 flex-col gap-10 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-blue-600/20 flex items-center justify-center rounded-xl border border-blue-500/30 glow">
@@ -139,6 +146,88 @@ export function CollabDashboard() {
           </NavLink>
         </nav>
       </aside>
+
+      {/* Mobile Header */}
+      <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-40">
+        <Sheet>
+          <SheetTrigger className="p-2 rounded-lg hover:bg-white/5 transition-all text-muted-foreground hover:text-foreground">
+            <Menu className="w-5 h-5" />
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 p-0 bg-card border-border">
+            <div className="flex flex-col h-full p-6">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-600/20 flex items-center justify-center rounded-xl border border-blue-500/30">
+                    <Calendar className="text-blue-400 w-5 h-5" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-display font-bold gradient-text">Aura AI</h1>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Workspace</p>
+                  </div>
+                </div>
+              </div>
+              <nav className="flex flex-col gap-1">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-2 px-3">Dev</p>
+                <NavLink
+                  to="/collab"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 p-3 rounded-xl font-medium transition-all group ${
+                      isActive
+                        ? 'bg-white/10 text-foreground shadow-lg border border-white/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                    }`
+                  }
+                >
+                  <GitBranch className="w-5 h-5" />
+                  Collab Board
+                </NavLink>
+                <NavLink
+                  to="/missionhq"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 p-3 rounded-xl font-medium transition-all group ${
+                      isActive
+                        ? 'bg-white/10 text-foreground shadow-lg border border-white/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                    }`
+                  }
+                >
+                  <Radar className="w-5 h-5" />
+                  Mission HQ
+                </NavLink>
+                <NavLink
+                  to="/overview"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 p-3 rounded-xl font-medium transition-all group ${
+                      isActive
+                        ? 'bg-white/10 text-foreground shadow-lg border border-white/10'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                    }`
+                  }
+                >
+                  <LayoutDashboard className="w-5 h-5" />
+                  Overview
+                </NavLink>
+              </nav>
+              <div className="mt-auto pt-4 border-t border-border">
+                <button
+                  onClick={toggleTheme}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+                >
+                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600/20 flex items-center justify-center rounded-lg border border-blue-500/30">
+            <Calendar className="text-blue-400 w-4 h-4" />
+          </div>
+          <h1 className="text-lg font-display font-bold gradient-text">Aura AI</h1>
+        </div>
+        <div className="w-10" />
+      </header>
 
       {/* Main content */}
       <main className="flex-1 p-6 md:p-12 overflow-auto">

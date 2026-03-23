@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { motion, AnimatePresence } from 'motion/react';
-import { Radar, Bot, User, CheckCircle2, Circle, Clock, Zap, ChevronRight, MessageSquare, X, GitBranch, Calendar, Sun, Moon, LayoutDashboard } from 'lucide-react';
+import { Radar, Bot, User, CheckCircle2, Circle, Clock, Zap, ChevronRight, MessageSquare, X, GitBranch, Calendar, Sun, Moon, LayoutDashboard, Menu } from 'lucide-react';
 import { format, isToday, isYesterday, isAfter, subDays, startOfDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

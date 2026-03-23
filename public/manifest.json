@@ -1,0 +1,42 @@
+{
+  "name": "Aura AI",
+  "short_name": "Aura",
+  "description": "AI-powered appointment management and patient care for modern medical practices.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030303",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait-primary",
+  "categories": ["medical", "productivity", "business"],
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Ask Aura AI",
+      "short_name": "Aura",
+      "description": "Open Aura AI assistant",
+      "url": "/?view=assistant",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View appointments dashboard",
+      "url": "/?view=dashboard",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    }
+  ]
+}
