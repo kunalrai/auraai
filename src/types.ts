@@ -32,6 +32,7 @@ export interface Appointment {
   reminderType: 'text' | 'phone' | 'email' | 'none';
   reminderStatus: 'pending' | 'sent' | 'failed';
   notes?: string;
+  duration?: string;
   createdAt: Timestamp;
 }
 

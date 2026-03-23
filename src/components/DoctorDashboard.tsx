@@ -31,7 +31,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
-  const [editForm, setEditForm] = useState({ patientName: '', dateTime: '', notes: '', status: 'scheduled' as Appointment['status'] });
+  const [editForm, setEditForm] = useState({ patientName: '', dateTime: '', notes: '', status: 'scheduled' as Appointment['status'], duration: '30 min' });
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [patientCount, setPatientCount] = useState(0);
@@ -153,6 +153,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
       dateTime: format(app.startTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
       notes: app.notes || '',
       status: app.status,
+      duration: app.duration || '30 min',
     });
   };
 
@@ -164,6 +165,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
         startTime: Timestamp.fromDate(new Date(editForm.dateTime)),
         notes: editForm.notes,
         status: editForm.status,
+        duration: editForm.duration,
       });
       setEditingAppointment(null);
     } catch (error) {
@@ -337,9 +339,17 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
         {loading ? (
           <div className="p-20 text-center text-text-muted font-sans animate-pulse">Synchronizing schedule...</div>
         ) : appointments.length === 0 ? (
-          <div className="p-20 glass-card text-center text-text-muted font-sans">
-            No appointments found for this period.
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-16 glass-card text-center space-y-4"
+          >
+            <div className="w-16 h-16 bg-blue-600/10 rounded-2xl flex items-center justify-center border border-blue-500/20 mx-auto">
+              <Calendar className="w-8 h-8 text-blue-400" />
+            </div>
+            <h3 className="text-lg font-display font-bold text-text/80">No appointments</h3>
+            <p className="text-sm text-text-muted">No appointments scheduled for this period. Use Aura AI to book one.</p>
+          </motion.div>
         ) : (
           <AnimatePresence>
             {appointments.map((app) => (
@@ -381,6 +391,11 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                         {format(app.startTime.toDate(), 'p')}
                       </span>
                     </div>
+                    {app.duration && (
+                      <span className="px-3 py-1 text-[10px] font-bold tracking-widest rounded-full border bg-purple-500/10 text-purple-400 border-purple-500/20">
+                        {app.duration}
+                      </span>
+                    )}
                     <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full border ${
                       app.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                       app.status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
@@ -611,6 +626,20 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
                     <option value="scheduled">Scheduled</option>
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Duration</label>
+                  <select
+                    value={editForm.duration}
+                    onChange={(e) => setEditForm(f => ({ ...f, duration: e.target.value }))}
+                    className="w-full bg-white/5 border border-border rounded-xl px-4 py-3 text-text focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all [color-scheme:dark]"
+                  >
+                    <option value="15 min">15 min</option>
+                    <option value="30 min">30 min</option>
+                    <option value="45 min">45 min</option>
+                    <option value="60 min">60 min</option>
                   </select>
                 </div>
 

@@ -1,7 +1,9 @@
-import { useQuery } from 'convex/react';
+import { useState, useEffect } from 'react';
+import { NavLink } from 'react-router-dom';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { motion } from 'motion/react';
-import { CheckCircle2, Circle, Loader2, MessageSquare, Zap, Bot, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { CheckCircle2, Circle, Loader2, MessageSquare, Zap, Bot, User, GitBranch, Radar, Calendar, Sun, Moon, SendHorizonal } from 'lucide-react';
 
 const STATUS_CONFIG = {
   DONE:   { label: 'Done',   className: 'bg-green-500/15 text-green-400 border-green-500/30',  dot: 'bg-green-400' },
@@ -10,8 +12,32 @@ const STATUS_CONFIG = {
 };
 
 export function CollabDashboard() {
-  const goals = useQuery(api.collab.listGoals);
+  const goals    = useQuery(api.collab.listGoals);
   const messages = useQuery(api.collab.listMessages);
+  const postMessage = useMutation(api.collab.postMessage);
+
+  const [chatInput, setChatInput] = useState('');
+  const [sending, setSending]     = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem('theme') as 'dark' | 'light') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', theme === 'light');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    setSending(true);
+    try {
+      await postMessage({ author: 'User', body: chatInput.trim() });
+      setChatInput('');
+    } finally {
+      setSending(false);
+    }
+  };
 
   const done   = goals?.filter(g => g.status === 'DONE').length   ?? 0;
   const active = goals?.filter(g => g.status === 'ACTIVE').length ?? 0;
@@ -20,11 +46,100 @@ export function CollabDashboard() {
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
+    <div className="min-h-screen bg-bg text-text font-sans flex flex-row">
+
+      {/* Sidebar */}
+      <aside className="w-72 border-r border-border bg-card p-8 flex flex-col gap-10 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-600/20 flex items-center justify-center rounded-xl border border-blue-500/30 glow">
+              <Calendar className="text-blue-400 w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-display font-bold tracking-tight gradient-text">Aura AI</h1>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Workspace</p>
+            </div>
+          </div>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg hover:bg-white/5 transition-all text-text-muted hover:text-text"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+        </div>
+        <nav className="flex flex-col gap-1">
+          <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold mb-3 px-4">Dev</p>
+          <NavLink
+            to="/collab"
+            className={({ isActive }) =>
+              `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${
+                isActive
+                  ? 'bg-white/10 text-text shadow-lg border border-white/10'
+                  : 'text-text-muted hover:text-text hover:bg-white/5'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <GitBranch className={`w-5 h-5 transition-colors ${isActive ? 'text-purple-400' : 'group-hover:text-purple-400'}`} />
+                Collab Board
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            to="/missionhq"
+            className={({ isActive }) =>
+              `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${
+                isActive
+                  ? 'bg-white/10 text-text shadow-lg border border-white/10'
+                  : 'text-text-muted hover:text-text hover:bg-white/5'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Radar className={`w-5 h-5 transition-colors ${isActive ? 'text-purple-400' : 'group-hover:text-purple-400'}`} />
+                Mission HQ
+              </>
+            )}
+          </NavLink>
+        </nav>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 p-6 md:p-12 overflow-auto">
     <div className="flex flex-col gap-8">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-display font-bold gradient-text">Collab Dashboard</h1>
         <p className="text-text-muted mt-1">Live view of Michel & Riya's sprint</p>
+      </div>
+
+      {/* Michel Chat Input */}
+      <div className="glass-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-6 h-6 rounded-full bg-purple-600/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+            <Bot className="w-3.5 h-3.5 text-purple-400" />
+          </div>
+          <span className="text-xs font-bold text-text-muted uppercase tracking-widest">Message Michel</span>
+        </div>
+        <form onSubmit={handleSend} className="flex gap-3">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={e => setChatInput(e.target.value)}
+            placeholder="Say something to Michel..."
+            className="flex-1 bg-white/5 border border-border rounded-xl px-4 py-3 text-sm text-text placeholder-text-muted/50 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+          />
+          <button
+            type="submit"
+            disabled={sending || !chatInput.trim()}
+            className="flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all flex-shrink-0"
+          >
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
+          </button>
+        </form>
       </div>
 
       {/* Stats row */}
@@ -160,6 +275,8 @@ export function CollabDashboard() {
           </div>
         </div>
       </div>
+    </div>
+      </main>
     </div>
   );
 }

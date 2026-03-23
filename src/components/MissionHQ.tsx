@@ -1,21 +1,90 @@
 import { useRef, useEffect, useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { motion, AnimatePresence } from 'motion/react';
-import { Radar, Bot, User, CheckCircle2, Circle, Clock, Zap, ChevronRight, MessageSquare, X } from 'lucide-react';
+import { Radar, Bot, User, CheckCircle2, Circle, Clock, Zap, ChevronRight, MessageSquare, X, GitBranch, Calendar, Sun, Moon } from 'lucide-react';
+
+// Full Tailwind class strings — must be complete so Tailwind doesn't purge them
+const COLOR_MAP: Record<string, {
+  cardBorder: string; selectedBorder: string; ring: string;
+  iconBg: string; iconBorder: string; iconText: string; roleText: string;
+  statusActiveBg: string; statusActiveText: string; statusActiveBorder: string;
+  panelBorder: string; panelTitle: string;
+  badgeBg: string; badgeText: string; badgeBorder: string;
+  avatarBg: string; avatarBorder: string; avatarText: string;
+  bubbleBg: string; bubbleBorder: string;
+}> = {
+  purple: {
+    cardBorder: 'border-purple-500/20', selectedBorder: 'border-purple-500/50', ring: 'ring-1 ring-purple-500/30',
+    iconBg: 'bg-purple-600/20', iconBorder: 'border-purple-500/30', iconText: 'text-purple-400', roleText: 'text-purple-400',
+    statusActiveBg: 'bg-purple-500/10', statusActiveText: 'text-purple-400', statusActiveBorder: 'border-purple-500/20',
+    panelBorder: 'border-purple-500/30', panelTitle: 'text-purple-400',
+    badgeBg: 'bg-purple-500/10', badgeText: 'text-purple-400', badgeBorder: 'border-purple-500/20',
+    avatarBg: 'bg-purple-600/20', avatarBorder: 'border-purple-500/30', avatarText: 'text-purple-400',
+    bubbleBg: 'bg-purple-500/5', bubbleBorder: 'border-purple-500/10',
+  },
+  blue: {
+    cardBorder: 'border-blue-500/20', selectedBorder: 'border-blue-500/50', ring: 'ring-1 ring-blue-500/30',
+    iconBg: 'bg-blue-600/20', iconBorder: 'border-blue-500/30', iconText: 'text-blue-400', roleText: 'text-blue-400',
+    statusActiveBg: 'bg-blue-500/10', statusActiveText: 'text-blue-400', statusActiveBorder: 'border-blue-500/20',
+    panelBorder: 'border-blue-500/30', panelTitle: 'text-blue-400',
+    badgeBg: 'bg-blue-500/10', badgeText: 'text-blue-400', badgeBorder: 'border-blue-500/20',
+    avatarBg: 'bg-blue-600/20', avatarBorder: 'border-blue-500/30', avatarText: 'text-blue-400',
+    bubbleBg: 'bg-blue-500/5', bubbleBorder: 'border-blue-500/10',
+  },
+  green: {
+    cardBorder: 'border-green-500/20', selectedBorder: 'border-green-500/50', ring: 'ring-1 ring-green-500/30',
+    iconBg: 'bg-green-600/20', iconBorder: 'border-green-500/30', iconText: 'text-green-400', roleText: 'text-green-400',
+    statusActiveBg: 'bg-green-500/10', statusActiveText: 'text-green-400', statusActiveBorder: 'border-green-500/20',
+    panelBorder: 'border-green-500/30', panelTitle: 'text-green-400',
+    badgeBg: 'bg-green-500/10', badgeText: 'text-green-400', badgeBorder: 'border-green-500/20',
+    avatarBg: 'bg-green-600/20', avatarBorder: 'border-green-500/30', avatarText: 'text-green-400',
+    bubbleBg: 'bg-green-500/5', bubbleBorder: 'border-green-500/10',
+  },
+  yellow: {
+    cardBorder: 'border-yellow-500/20', selectedBorder: 'border-yellow-500/50', ring: 'ring-1 ring-yellow-500/30',
+    iconBg: 'bg-yellow-600/20', iconBorder: 'border-yellow-500/30', iconText: 'text-yellow-400', roleText: 'text-yellow-400',
+    statusActiveBg: 'bg-yellow-500/10', statusActiveText: 'text-yellow-400', statusActiveBorder: 'border-yellow-500/20',
+    panelBorder: 'border-yellow-500/30', panelTitle: 'text-yellow-400',
+    badgeBg: 'bg-yellow-500/10', badgeText: 'text-yellow-400', badgeBorder: 'border-yellow-500/20',
+    avatarBg: 'bg-yellow-600/20', avatarBorder: 'border-yellow-500/30', avatarText: 'text-yellow-400',
+    bubbleBg: 'bg-yellow-500/5', bubbleBorder: 'border-yellow-500/10',
+  },
+  orange: {
+    cardBorder: 'border-orange-500/20', selectedBorder: 'border-orange-500/50', ring: 'ring-1 ring-orange-500/30',
+    iconBg: 'bg-orange-600/20', iconBorder: 'border-orange-500/30', iconText: 'text-orange-400', roleText: 'text-orange-400',
+    statusActiveBg: 'bg-orange-500/10', statusActiveText: 'text-orange-400', statusActiveBorder: 'border-orange-500/20',
+    panelBorder: 'border-orange-500/30', panelTitle: 'text-orange-400',
+    badgeBg: 'bg-orange-500/10', badgeText: 'text-orange-400', badgeBorder: 'border-orange-500/20',
+    avatarBg: 'bg-orange-600/20', avatarBorder: 'border-orange-500/30', avatarText: 'text-orange-400',
+    bubbleBg: 'bg-orange-500/5', bubbleBorder: 'border-orange-500/10',
+  },
+};
+
+const DEFAULT_COLORS = COLOR_MAP.blue;
+
+function getColors(color: string) {
+  return COLOR_MAP[color] ?? DEFAULT_COLORS;
+}
 
 export function MissionHQ() {
   const goals    = useQuery(api.collab.listGoals);
   const messages = useQuery(api.collab.listMessages);
-  const activeGoal = useQuery(api.collab.getActiveGoal);
-  const scrollRef  = useRef<HTMLDivElement>(null);
-  const [selectedAgent, setSelectedAgent] = useState<'Michel' | 'Riya' | 'Dev' | null>(null);
-  const [modalGoal, setModalGoal] = useState<{ _id: string; number: number; title: string; spec: string; status: string; completedAt?: number } | null>(null);
+  const agents   = useQuery(api.collab.listAgents);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [modalGoal, setModalGoal] = useState<{
+    _id: string; number: number; title: string; spec: string; status: string; completedAt?: number
+  } | null>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem('theme') as 'dark' | 'light') || 'dark');
 
-  const toggleAgent = (agent: 'Michel' | 'Riya' | 'Dev') =>
-    setSelectedAgent(prev => prev === agent ? null : agent);
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', theme === 'light');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
-  const riyaGoal = goals?.find(g => g.status === 'ACTIVE') ?? null;
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -23,15 +92,82 @@ export function MissionHQ() {
     }
   }, [messages]);
 
-  const done   = goals?.filter(g => g.status === 'DONE').length   ?? 0;
-  const active = goals?.filter(g => g.status === 'ACTIVE').length ?? 0;
-  const queued = goals?.filter(g => g.status === 'QUEUED').length ?? 0;
-  const total  = goals?.length ?? 0;
+  const done    = goals?.filter(g => g.status === 'DONE').length   ?? 0;
+  const active  = goals?.filter(g => g.status === 'ACTIVE').length ?? 0;
+  const queued  = goals?.filter(g => g.status === 'QUEUED').length ?? 0;
+  const total   = goals?.length ?? 0;
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
-
+  const activeGoal = goals?.find(g => g.status === 'ACTIVE') ?? null; // used for modal only
   const isConnected = goals !== undefined;
 
+  const agentMap = Object.fromEntries((agents ?? []).map(a => [a.name, a]));
+
+  const isPlanner = (agent: { role: string }) => agent.role.toLowerCase().includes('planner');
+
   return (
+    <div className="min-h-screen bg-bg text-text font-sans flex flex-row">
+
+      {/* Sidebar */}
+      <aside className="w-72 border-r border-border bg-card p-8 flex flex-col gap-10 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-600/20 flex items-center justify-center rounded-xl border border-blue-500/30 glow">
+              <Calendar className="text-blue-400 w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-display font-bold tracking-tight gradient-text">Aura AI</h1>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold">Workspace</p>
+            </div>
+          </div>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg hover:bg-white/5 transition-all text-text-muted hover:text-text"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+        </div>
+        <nav className="flex flex-col gap-1">
+          <p className="text-[10px] text-text-muted uppercase tracking-widest font-bold mb-3 px-4">Dev</p>
+          <NavLink
+            to="/collab"
+            className={({ isActive }) =>
+              `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${
+                isActive
+                  ? 'bg-white/10 text-text shadow-lg border border-white/10'
+                  : 'text-text-muted hover:text-text hover:bg-white/5'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <GitBranch className={`w-5 h-5 transition-colors ${isActive ? 'text-purple-400' : 'group-hover:text-purple-400'}`} />
+                Collab Board
+              </>
+            )}
+          </NavLink>
+          <NavLink
+            to="/missionhq"
+            className={({ isActive }) =>
+              `flex items-center gap-4 p-4 rounded-xl font-medium transition-all group ${
+                isActive
+                  ? 'bg-white/10 text-text shadow-lg border border-white/10'
+                  : 'text-text-muted hover:text-text hover:bg-white/5'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Radar className={`w-5 h-5 transition-colors ${isActive ? 'text-purple-400' : 'group-hover:text-purple-400'}`} />
+                Mission HQ
+              </>
+            )}
+          </NavLink>
+        </nav>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 p-6 md:p-12 overflow-auto">
     <div className="max-w-6xl mx-auto space-y-8">
 
       {/* Header */}
@@ -48,162 +184,142 @@ export function MissionHQ() {
         <div className="flex items-center gap-2 px-4 py-2 glass-card rounded-xl self-start sm:self-auto">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-yellow-400 animate-pulse'}`} />
           <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-            {isConnected ? 'Convex Live' : 'Connecting…'}
+            {isConnected ? 'Aura Live' : 'Connecting…'}
           </span>
         </div>
       </header>
 
-      {/* Agent Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Michel */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={() => toggleAgent('Michel')}
-          className={`glass-card p-6 space-y-3 cursor-pointer transition-all hover:bg-white/[0.06] ${selectedAgent === 'Michel' ? 'border-purple-500/50 ring-1 ring-purple-500/30' : 'border-purple-500/20'}`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-600/20 rounded-xl flex items-center justify-center border border-purple-500/30">
-              <Bot className="w-5 h-5 text-purple-400" />
-            </div>
-            <div>
-              <p className="font-display font-bold text-text/90">Michel</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400">Feature Planner</p>
-            </div>
-            <div className="ml-auto">
-              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
-                queued > 0
-                  ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                  : 'bg-white/5 text-text-muted border-border'
-              }`}>
-                {queued > 0 ? 'Planning' : 'Idle'}
-              </span>
-            </div>
-          </div>
-          <p className="text-xs text-text-muted leading-relaxed">
-            {queued > 0
-              ? `${queued} goal${queued > 1 ? 's' : ''} queued for Riya`
-              : 'Queue is clear — awaiting next sprint'}
-          </p>
-        </motion.div>
-
-        {/* Riya */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          onClick={() => toggleAgent('Riya')}
-          className={`glass-card p-6 space-y-3 cursor-pointer transition-all hover:bg-white/[0.06] ${selectedAgent === 'Riya' ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-blue-500/20'}`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center border border-blue-500/30">
-              <User className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <p className="font-display font-bold text-text/90">Riya</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Frontend Developer</p>
-            </div>
-            <div className="ml-auto">
-              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
-                activeGoal
-                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                  : 'bg-white/5 text-text-muted border-border'
-              }`}>
-                {activeGoal ? 'Building' : 'Idle'}
-              </span>
-            </div>
-          </div>
-          <p className="text-xs text-text-muted truncate leading-relaxed">
-            {activeGoal
-              ? `Goal ${activeGoal.number}: ${activeGoal.title}`
-              : 'No active goal — waiting for Michel'}
-          </p>
-        </motion.div>
-
-        {/* Dev */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          onClick={() => toggleAgent('Dev')}
-          className={`glass-card p-6 space-y-3 cursor-pointer transition-all hover:bg-white/[0.06] ${selectedAgent === 'Dev' ? 'border-green-500/50 ring-1 ring-green-500/30' : 'border-green-500/20'}`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-600/20 rounded-xl flex items-center justify-center border border-green-500/30">
-              <User className="w-5 h-5 text-green-400" />
-            </div>
-            <div>
-              <p className="font-display font-bold text-text/90">Dev</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-green-400">Frontend Developer</p>
-            </div>
-            <div className="ml-auto">
-              <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border bg-white/5 text-text-muted border-border">
-                Standby
-              </span>
-            </div>
-          </div>
-          <p className="text-xs text-text-muted leading-relaxed">New team member — ready for assignments</p>
-        </motion.div>
+      {/* Agent Status Cards — dynamic */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {agents?.map((agent, i) => {
+          const c = getColors(agent.color);
+          const isSelected = selectedAgent === agent.name;
+          const planner = isPlanner(agent);
+          // Per-agent active goal: assigned to this agent, or unassigned defaulting to Riya
+          const agentActiveGoal = planner ? null : (goals ?? []).find(g =>
+            g.status === 'ACTIVE' &&
+            (g.assignee === agent.name || (!g.assignee && agent.name === 'Riya'))
+          ) ?? null;
+          const hasActive = !!agentActiveGoal;
+          return (
+            <motion.div
+              key={agent._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              onClick={() => setSelectedAgent(isSelected ? null : agent.name)}
+              className={`glass-card p-6 space-y-3 cursor-pointer transition-all hover:bg-white/[0.06] ${isSelected ? `${c.selectedBorder} ${c.ring}` : c.cardBorder}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 ${c.iconBg} rounded-xl flex items-center justify-center border ${c.iconBorder}`}>
+                  {planner ? <Bot className={`w-5 h-5 ${c.iconText}`} /> : <User className={`w-5 h-5 ${c.iconText}`} />}
+                </div>
+                <div>
+                  <p className="font-display font-bold text-text/90">{agent.name}</p>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${c.roleText}`}>{agent.role}</p>
+                </div>
+                <div className="ml-auto">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+                    (planner && queued > 0) || hasActive
+                      ? `${c.statusActiveBg} ${c.statusActiveText} ${c.statusActiveBorder}`
+                      : 'bg-white/5 text-text-muted border-border'
+                  }`}>
+                    {planner ? (queued > 0 ? 'Planning' : 'Idle') : (hasActive ? 'Building' : 'Idle')}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-text-muted leading-relaxed truncate">
+                {planner
+                  ? (queued > 0 ? `${queued} goal${queued > 1 ? 's' : ''} queued for team` : 'Queue is clear — awaiting next sprint')
+                  : (hasActive ? `Goal ${agentActiveGoal!.number}: ${agentActiveGoal!.title}` : 'No active goal — waiting for Michel')}
+              </p>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Agent Detail Panel */}
       <AnimatePresence>
-        {selectedAgent && (
-          <motion.div
-            key={selectedAgent}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="overflow-hidden"
-          >
-            <div className={`glass-card p-6 space-y-4 ${
-              selectedAgent === 'Michel' ? 'border-purple-500/30' :
-              selectedAgent === 'Riya'   ? 'border-blue-500/30' :
-                                           'border-green-500/30'
-            }`}>
-              <div className="flex items-center justify-between">
-                <h4 className={`font-display font-bold text-lg ${
-                  selectedAgent === 'Michel' ? 'text-purple-400' :
-                  selectedAgent === 'Riya'   ? 'text-blue-400' :
-                                               'text-green-400'
-                }`}>
-                  {selectedAgent}
-                </h4>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                  {selectedAgent === 'Michel' ? 'Feature Planner' : selectedAgent === 'Riya' ? 'Frontend Developer' : 'Frontend Developer'}
-                </span>
+        {selectedAgent && agentMap[selectedAgent] && (() => {
+          const agent = agentMap[selectedAgent];
+          const c = getColors(agent.color);
+          const planner = isPlanner(agent);
+          return (
+            <motion.div
+              key={selectedAgent}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="overflow-hidden"
+            >
+              <div className={`glass-card p-6 space-y-4 ${c.panelBorder}`}>
+                <div className="flex items-center justify-between">
+                  <h4 className={`font-display font-bold text-lg ${c.panelTitle}`}>{agent.name}</h4>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{agent.role}</span>
+                </div>
+                {(() => {
+                  if (planner) {
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-xs text-text-muted">Plans and queues goals — no direct code assignments.</p>
+                        <p className="text-xs text-text-muted">
+                          {queued > 0 ? `Currently planning ${queued} goal(s) for the team.` : 'Queue is clear — awaiting next sprint.'}
+                        </p>
+                      </div>
+                    );
+                  }
+                  // Goals explicitly assigned to this agent, or unassigned goals defaulting to Riya
+                  const agentGoals = (goals ?? []).filter(g =>
+                    g.assignee === agent.name || (!g.assignee && agent.name === 'Riya')
+                  );
+                  const agentActive = agentGoals.find(g => g.status === 'ACTIVE');
+                  const agentQueued = agentGoals.filter(g => g.status === 'QUEUED');
+                  if (!agentActive && agentQueued.length === 0) {
+                    return (
+                      <div className="flex items-center gap-3 py-2">
+                        <Circle className="w-4 h-4 text-text-muted/40" />
+                        <p className="text-xs text-text-muted">Waiting for next assignment.</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="space-y-3">
+                      {agentActive && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`}>
+                              Goal #{agentActive.number}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`}>
+                              Active
+                            </span>
+                          </div>
+                          <p className="text-sm font-bold text-text/90">{agentActive.title}</p>
+                          <p className="text-xs text-text-muted leading-relaxed">{agentActive.spec}</p>
+                        </div>
+                      )}
+                      {agentQueued.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Queued</p>
+                          {agentQueued.slice(0, 3).map(g => (
+                            <div key={g._id} className="flex items-center gap-2">
+                              <Clock className="w-3 h-3 text-text-muted/40 flex-shrink-0" />
+                              <p className="text-xs text-text-muted truncate">#{g.number} {g.title}</p>
+                            </div>
+                          ))}
+                          {agentQueued.length > 3 && (
+                            <p className="text-[10px] text-text-muted/60 pl-5">+{agentQueued.length - 3} more</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
-
-              {selectedAgent === 'Michel' ? (
-                <div className="space-y-2">
-                  <p className="text-xs text-text-muted">Michel plans and queues goals — no direct code assignments.</p>
-                  <p className="text-xs text-text-muted">
-                    {queued > 0 ? `Currently planning ${queued} goal(s) for the team.` : 'Queue is clear — awaiting next sprint.'}
-                  </p>
-                </div>
-              ) : selectedAgent === 'Riya' && riyaGoal ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                      Goal #{riyaGoal.number}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                      Active
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold text-text/90">{riyaGoal.title}</p>
-                  <p className="text-xs text-text-muted leading-relaxed">{riyaGoal.spec}</p>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3 py-2">
-                  <Circle className="w-4 h-4 text-text-muted/40" />
-                  <p className="text-xs text-text-muted">Waiting for next assignment.</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
 
       {/* Sprint Progress */}
@@ -256,7 +372,7 @@ export function MissionHQ() {
             <ChevronRight className="w-4 h-4 text-blue-400" />
             Goal Pipeline
           </h3>
-          <div className="space-y-2 overflow-y-auto max-h-[420px] scrollbar-hide">
+          <div className="space-y-2 overflow-y-auto max-h-[60vh] pr-1 mission-hq-scroll">
             {goals?.map((goal, i) => (
               <motion.div
                 key={goal._id}
@@ -303,33 +419,28 @@ export function MissionHQ() {
             <MessageSquare className="w-4 h-4 text-purple-400" />
             Live Message Feed
           </h3>
-          <div ref={scrollRef} className="space-y-3 overflow-y-auto max-h-[420px] scrollbar-hide">
-            {messages?.map((msg, i) => (
-              <motion.div
-                key={msg._id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.015 }}
-                className={`flex gap-3 ${msg.author === 'Riya' ? 'flex-row-reverse' : msg.author === 'Dev' ? 'flex-row-reverse' : 'flex-row'}`}
-              >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border text-xs font-bold ${
-                  msg.author === 'Michel'  ? 'bg-purple-600/20 border-purple-500/30 text-purple-400'
-                  : msg.author === 'Riya' ? 'bg-blue-600/20 border-blue-500/30 text-blue-400'
-                  : msg.author === 'Dev'  ? 'bg-green-600/20 border-green-500/30 text-green-400'
-                  : 'bg-yellow-600/20 border-yellow-500/30 text-yellow-400'
-                }`}>
-                  {msg.author[0]}
-                </div>
-                <div className={`max-w-[78%] px-4 py-2.5 rounded-xl text-xs leading-relaxed border ${
-                  msg.author === 'Michel'  ? 'bg-purple-500/5 border-purple-500/10 text-text/80'
-                  : msg.author === 'Riya' ? 'bg-blue-500/5 border-blue-500/10 text-text/80'
-                  : msg.author === 'Dev'  ? 'bg-green-500/5 border-green-500/10 text-text/80'
-                  : 'bg-yellow-500/5 border-yellow-500/10 text-text/80'
-                }`}>
-                  {msg.body}
-                </div>
-              </motion.div>
-            ))}
+          <div ref={scrollRef} className="space-y-3 overflow-y-auto max-h-[60vh] pr-1 mission-hq-scroll">
+            {messages?.map((msg, i) => {
+              const agent = agentMap[msg.author];
+              const c = agent ? getColors(agent.color) : DEFAULT_COLORS;
+              const rightAlign = agent ? !isPlanner(agent) : false;
+              return (
+                <motion.div
+                  key={msg._id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + i * 0.015 }}
+                  className={`flex gap-3 ${rightAlign ? 'flex-row-reverse' : 'flex-row'}`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border text-xs font-bold ${c.avatarBg} ${c.avatarBorder} ${c.avatarText}`}>
+                    {msg.author[0]}
+                  </div>
+                  <div className={`max-w-[78%] px-4 py-2.5 rounded-xl text-xs leading-relaxed border ${c.bubbleBg} ${c.bubbleBorder} text-text/80`}>
+                    {msg.body}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
 
@@ -369,11 +480,8 @@ export function MissionHQ() {
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-
               <h3 className="text-xl font-display font-bold text-text/90 leading-snug">{modalGoal.title}</h3>
-
               <p className="text-sm text-text-muted leading-relaxed">{modalGoal.spec}</p>
-
               {modalGoal.completedAt && (
                 <p className="text-xs text-green-400/70">
                   Completed: {new Date(modalGoal.completedAt).toLocaleString()}
@@ -383,6 +491,8 @@ export function MissionHQ() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+      </main>
     </div>
   );
 }

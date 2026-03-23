@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy, Timestamp, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import { Doctor, Patient, Appointment } from '../types.ts';
-import { User, Phone, Mail, Plus, Trash2, MessageSquare, PhoneCall, Send, X, Search, History, ChevronDown, Clock } from 'lucide-react';
+import { User, Phone, Mail, Plus, Trash2, MessageSquare, PhoneCall, Send, X, Search, History, ChevronDown, Clock, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { generateReminderMessage } from '../services/geminiService.ts';
@@ -15,6 +15,7 @@ export function PatientsView({ doctor }: PatientsViewProps) {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'completed' | 'cancelled'>('all');
   const [isAdding, setIsAdding] = useState(false);
   const [newPatient, setNewPatient] = useState({ name: '', phone: '', email: '' });
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
@@ -124,11 +125,21 @@ export function PatientsView({ doctor }: PatientsViewProps) {
     setTimeout(() => setSendingReminder(null), 2000);
   };
 
-  const filteredPatients = patients.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.phone?.includes(searchTerm) ||
-    p.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPatients = patients.filter(p => {
+    const matchesSearch =
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.phone?.includes(searchTerm) ||
+      p.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+    if (statusFilter === 'all') return true;
+
+    // Most recent appointment for this patient (allAppointments is ordered desc by startTime)
+    const latest = allAppointments.find(
+      a => a.patientName.toLowerCase() === p.name.toLowerCase()
+    );
+    return latest?.status === statusFilter;
+  });
 
   return (
     <div className="max-w-6xl mx-auto space-y-12">
@@ -149,6 +160,16 @@ export function PatientsView({ doctor }: PatientsViewProps) {
               className="pl-12 pr-6 py-3 bg-white/5 border border-border rounded-xl focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all w-64 text-text"
             />
           </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            className="px-4 py-3 bg-white/5 border border-border rounded-xl focus:outline-none focus:border-blue-500/50 transition-all text-sm font-medium text-text"
+          >
+            <option value="all" className="bg-card">All Patients</option>
+            <option value="scheduled" className="bg-card">Scheduled</option>
+            <option value="completed" className="bg-card">Completed</option>
+            <option value="cancelled" className="bg-card">Cancelled</option>
+          </select>
           <button
             onClick={() => setIsAdding(true)}
             className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-xl font-bold hover:bg-white/90 transition-all shadow-lg"
@@ -211,9 +232,17 @@ export function PatientsView({ doctor }: PatientsViewProps) {
         {loading ? (
           <div className="col-span-full p-20 text-center text-text-muted font-sans animate-pulse">Synchronizing patients...</div>
         ) : filteredPatients.length === 0 ? (
-          <div className="col-span-full p-20 glass-card text-center text-text-muted font-sans">
-            No patients found. Add your first patient to get started.
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="col-span-full p-16 glass-card text-center space-y-4"
+          >
+            <div className="w-16 h-16 bg-blue-600/10 rounded-2xl flex items-center justify-center border border-blue-500/20 mx-auto">
+              <Users className="w-8 h-8 text-blue-400" />
+            </div>
+            <h3 className="text-lg font-display font-bold text-text/80">No patients yet</h3>
+            <p className="text-sm text-text-muted">Add your first patient to get started with appointment management.</p>
+          </motion.div>
         ) : (
           filteredPatients.map((patient) => (
             <motion.div
