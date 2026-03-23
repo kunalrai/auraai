@@ -138,7 +138,7 @@ export const claimGoal = mutation({
     const goal = await ctx.db
       .query("goals")
       .withIndex("by_number", (q) => q.eq("number", args.goalNumber))
-      .unique();
+      .first();
     if (!goal) throw new Error(`Goal ${args.goalNumber} not found`);
     if (goal.status !== "ACTIVE") {
       throw new Error(`Goal ${args.goalNumber} is not ACTIVE (current: ${goal.status})`);
@@ -153,7 +153,7 @@ export const claimMyGoal = mutation({
     const goal = await ctx.db
       .query("goals")
       .withIndex("by_number", (q) => q.eq("number", args.goalNumber))
-      .unique();
+      .first();
     if (!goal) throw new Error(`Goal ${args.goalNumber} not found`);
     if (goal.status !== "QUEUED") {
       throw new Error(`Goal ${args.goalNumber} is not QUEUED (current: ${goal.status})`);
@@ -161,6 +161,21 @@ export const claimMyGoal = mutation({
     const assignee = goal.assignee ?? "Riya";
     if (assignee !== args.worker) {
       throw new Error(`Goal ${args.goalNumber} is assigned to ${assignee}, not ${args.worker}`);
+    }
+    await ctx.db.patch(goal._id, { status: "WORKING", worker: args.worker });
+  },
+});
+
+export const claimMyActiveGoal = mutation({
+  args: { worker: v.string() },
+  handler: async (ctx, args) => {
+    const goal = await ctx.db
+      .query("goals")
+      .withIndex("by_status", (q) => q.eq("status", "ACTIVE"))
+      .first();
+    if (!goal) throw new Error(`No active goal found`);
+    if (goal.assignee !== args.worker) {
+      throw new Error(`No active goal assigned to ${args.worker}`);
     }
     await ctx.db.patch(goal._id, { status: "WORKING", worker: args.worker });
   },
