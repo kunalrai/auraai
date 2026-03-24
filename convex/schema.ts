@@ -110,5 +110,17 @@ export default defineSchema({
     sentAt: v.number(),
     message: v.optional(v.string()),
     error: v.optional(v.string()),
-  }).index("by_doctor", ["doctorId"]).index("by_patient", ["patientId"]),
+  }).index("by_doctor", ["doctorId"]).index("by_patient", ["patientId"]).index("by_doctor_sent", ["doctorId", "sentAt"]),
+
+  usageSummary: defineTable({
+    doctorId: v.string(),
+    billingPeriod: v.string(),
+    smsSent: v.number(),
+    callsMade: v.number(),
+    tokenPrompt: v.number(),
+    tokenCompletion: v.number(),
+    tokenTotal: v.number(),
+    lastUpdatedAt: v.number(),
+    stripeReportedAt: v.optional(v.number()),
+  }).index("by_doctor_period", ["doctorId", "billingPeriod"]).index("by_period", ["billingPeriod"]),
 });
