@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Doctor } from '../types.ts';
-import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon, Sparkles, Bot, Settings, Menu, X } from 'lucide-react';
+import { Calendar, MessageSquare, LogOut, User as UserIcon, Users, Sun, Moon, Sparkles, Bot, Settings, Menu, X, Shield } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -9,7 +9,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq';
+type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq' | 'admin';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -79,24 +79,25 @@ function NavContent({ onNavigate, currentView, setView, toggleTheme, theme, doct
           <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold px-3 mb-2">Management</p>
         </div>
 
-        {([
-          { view: 'dashboard' as AppView, icon: Calendar, label: 'Dashboard' },
-          { view: 'calendar' as AppView, icon: Calendar, label: 'Calendar' },
-          { view: 'patients' as AppView, icon: Users, label: 'Patients' },
-          { view: 'settings' as AppView, icon: Settings, label: 'Settings' },
-        ] as const).map(({ view, icon: Icon, label }) => (
-          <button
-            key={view}
-            onClick={() => handleNav(view)}
-            className={cn(
-              "flex items-center gap-3 p-3 rounded-xl font-medium transition-all group text-sm",
-              currentView === view
-                ? "bg-white/10 text-foreground shadow-lg border border-white/10"
-                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-            )}
-          >
-            <Icon className={cn("w-5 h-5 transition-colors", currentView === view ? "text-blue-400" : "group-hover:text-blue-400")} />
-            {label}
+          {([
+            { view: 'dashboard' as AppView, icon: Calendar, label: 'Dashboard' },
+            { view: 'calendar' as AppView, icon: Calendar, label: 'Calendar' },
+            { view: 'patients' as AppView, icon: Users, label: 'Patients' },
+            { view: 'settings' as AppView, icon: Settings, label: 'Settings' },
+            ...((doctor?.uid === (import.meta as any).env?.VITE_ADMIN_UID) ? [{ view: 'admin' as AppView, icon: Shield, label: 'Admin' }] : []),
+          ] as const).map(({ view, icon: Icon, label }) => (
+            <button
+              key={view}
+              onClick={() => handleNav(view)}
+              className={cn(
+                "flex items-center gap-3 p-3 rounded-xl font-medium transition-all group text-sm",
+                currentView === view
+                  ? "bg-white/10 text-foreground shadow-lg border border-white/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              )}
+            >
+              <Icon className={cn("w-5 h-5 transition-colors", currentView === view ? "text-blue-400" : "group-hover:text-blue-400")} />
+              {label}
           </button>
         ))}
       </nav>
@@ -178,6 +179,7 @@ export function Layout({ children, doctor, onLogout, currentView, setView, theme
             { view: 'calendar' as AppView, icon: Calendar, label: 'Calendar' },
             { view: 'patients' as AppView, icon: Users, label: 'Patients' },
             { view: 'settings' as AppView, icon: Settings, label: 'Settings' },
+            ...((doctor?.uid === (import.meta as any).env?.VITE_ADMIN_UID) ? [{ view: 'admin' as AppView, icon: Shield, label: 'Admin' }] : []),
           ] as const).map(({ view, icon: Icon, label }) => (
             <button
               key={view}

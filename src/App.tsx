@@ -16,11 +16,12 @@ import { CollabDashboard } from './components/CollabDashboard.tsx';
 import { MissionHQ } from './components/MissionHQ.tsx';
 import { OverviewDashboard } from './components/OverviewDashboard.tsx';
 import SignupPage from './components/SignupPage.tsx';
+import AdminBillingView from './components/AdminBillingView.tsx';
 import { LogIn, Calendar, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { api } from '../convex/_generated/api';
 
-type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq';
+type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq' | 'admin';
 
 export default function App() {
   const navigate = useNavigate();
@@ -228,6 +229,11 @@ export default function App() {
         {view === 'missionhq' && (
           <motion.div key="missionhq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
             <MissionHQ />
+          </motion.div>
+        )}
+        {view === 'admin' && (
+          <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
+            <AdminBillingView />
           </motion.div>
         )}
       </AnimatePresence>
