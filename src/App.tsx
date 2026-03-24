@@ -58,14 +58,6 @@ export default function App() {
     return <OverviewDashboard />;
   }
 
-  const handleLogin = async () => {
-    try {
-      await signIn("google", { redirectTo: "/" });
-    } catch (error) {
-      console.error("Login Error:", error);
-    }
-  };
-
   const handleLogout = async () => {
     await signOut();
   };
