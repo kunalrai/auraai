@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useMutation, useQuery } from 'convex/react';
 import { doc, getDoc, setDoc, Timestamp, query, collection, orderBy, limit, onSnapshot } from 'firebase/firestore';
@@ -25,6 +25,7 @@ type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' 
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, signOut } = useAuthActions();
   const authStatus = useQuery(api.doctors.authStatus);
   const createProfile = useMutation(api.doctors.createProfile);
