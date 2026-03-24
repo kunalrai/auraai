@@ -116,3 +116,10 @@ export const getHistory = query({
       .slice(0, 50);
   },
 });
+
+export const scanAll = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("commLog").collect();
+  },
+});

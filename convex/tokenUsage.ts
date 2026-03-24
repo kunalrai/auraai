@@ -136,3 +136,10 @@ export const getHistory = query({
     }));
   },
 });
+
+export const scanAll = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("tokenUsage").collect();
+  },
+});
