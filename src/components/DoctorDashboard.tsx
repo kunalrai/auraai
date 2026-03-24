@@ -76,7 +76,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
       setAllAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)));
     });
     return () => unsub();
-  }, [doctor.uid]);
+  }, [doctor?.uid]);
 
   // Patients count
   useEffect(() => {
@@ -85,7 +85,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
       setPatientCount(snap.size);
     });
     return () => unsub();
-  }, [doctor.uid]);
+  }, [doctor?.uid]);
 
   const toggleNotes = (id: string) => {
     setExpandedNotes(prev => {
@@ -127,7 +127,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
     });
 
     return () => unsubscribe();
-  }, [doctor.uid, filter]);
+  }, [doctor?.uid, filter]);
 
   const updateStatus = async (id: string, status: Appointment['status']) => {
     try {

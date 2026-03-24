@@ -12,7 +12,11 @@ interface PendingReminder {
 export const dispatch = action({
   args: {},
   handler: async (ctx): Promise<{ sent: number; failed: number; message: string }> => {
-    const pending: PendingReminder[] = await ctx.runQuery(api.patients.listPendingReminders, {});
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    const doctorId = identity.subject;
+
+    const pending: PendingReminder[] = await ctx.runQuery(api.patients.listPendingReminders, { doctorId });
 
     if (!pending || pending.length === 0) {
       return { sent: 0, failed: 0, message: "No pending reminders." };
@@ -37,8 +41,6 @@ export const dispatch = action({
     let failed = 0;
 
     for (const reminder of pending) {
-      const patient = await ctx.runQuery(api.patients.getById, { patientId: reminder.patientId });
-      const doctorId = patient?.doctorId ?? "unknown";
       const smsMessage = `Hi ${reminder.patientName}, this is a reminder from your doctor. Your follow-up visit is due today. Please call the clinic to book your appointment.`;
 
       try {

@@ -25,7 +25,7 @@ export default function App() {
 
   const [user, setUser] = useState<User | null>(null);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [doctorLoading, setDoctorLoading] = useState(true);
   const [view, setView] = useState<AppView>('dashboard');
   const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getItem('google_token'));
   const [theme, setTheme] = useState<'dark' | 'light'>(localStorage.getItem('theme') as 'dark' | 'light' || 'dark');
@@ -39,22 +39,32 @@ export default function App() {
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const handleLogin = async () => {
+    if (user) {
+      console.log('[Auth] handleLogin: already logged in as', user.uid);
+      return;
+    }
     try {
+      console.log('[Auth] handleLogin: starting signInWithPopup');
       const result = await signInWithPopup(auth, googleProvider);
+      console.log('[Auth] handleLogin: signInWithPopup success', result?.user?.uid);
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
-        setGoogleToken(credential.accessToken);
         localStorage.setItem('google_token', credential.accessToken);
       }
-    } catch (error) {
-      console.error("Login Error:", error);
+      // Reload to get clean auth state, avoiding state race conditions
+      window.location.reload();
+    } catch (error: any) {
+      console.error("[Auth] Login Error:", error?.code, error?.message);
     }
   };
 
   const handleLogout = async () => {
-    await logout();
+    setUser(null);
+    setDoctor(null);
+    setDoctorLoading(true);
     setGoogleToken(null);
     localStorage.removeItem('google_token');
+    await logout();
   };
 
   const handleGoogleReauth = () => {
@@ -64,12 +74,14 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      console.log('[Auth] onAuthStateChanged fired, user:', currentUser?.uid, 'doctorLoading:', doctorLoading);
       if (currentUser) {
         setUser(currentUser);
         const docRef = doc(db, 'doctors', currentUser.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setDoctor(docSnap.data() as Doctor);
+          console.log('[Auth] onAuthStateChanged: doctor loaded from Firestore', (docSnap.data() as Doctor).uid);
         } else {
           const newDoctor: Doctor = {
             uid: currentUser.uid,
@@ -79,12 +91,15 @@ export default function App() {
           };
           await setDoc(docRef, newDoctor);
           setDoctor(newDoctor);
+          console.log('[Auth] onAuthStateChanged: new doctor created', newDoctor.uid);
         }
+        setDoctorLoading(false);
+        console.log('[Auth] onAuthStateChanged: doctorLoading set to false');
       } else {
         setUser(null);
         setDoctor(null);
+        setDoctorLoading(false);
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -104,7 +119,8 @@ export default function App() {
     return () => unsub();
   }, [doctor?.uid]);
 
-  if (loading) {
+  if (user && doctorLoading) {
+    console.log('[Auth] Loading screen (user exists, waiting for doctor):', user.uid);
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-6">
