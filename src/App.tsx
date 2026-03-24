@@ -120,23 +120,14 @@ export default function App() {
     );
   }
 
-  if (user && !doctor) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <div className="max-w-md w-full glass-card p-8 glow">
-          <h2 className="text-xl font-display font-bold mb-4 text-red-400">Profile Error</h2>
-          <p className="text-text/60 mb-6 font-sans leading-relaxed">
-            We couldn't load your doctor profile. This might be due to a connection issue or missing permissions.
-          </p>
-          <button
-            onClick={() => logout()}
-            className="w-full bg-white text-black py-3 rounded-lg font-bold hover:bg-white/90 transition-all"
-          >
-            Sign Out & Retry
-          </button>
-        </div>
-      </div>
-    );
+  if (location.pathname === '/missionhq') {
+    return <MissionHQ />;
+  }
+  if (location.pathname === '/collab') {
+    return <CollabDashboard />;
+  }
+  if (location.pathname === '/overview') {
+    return <OverviewDashboard />;
   }
 
   if (!user) {
@@ -221,16 +212,6 @@ export default function App() {
         {view === 'settings' && (
           <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
             <SettingsView doctor={doctor!} onDoctorUpdate={(updated) => setDoctor(updated)} />
-          </motion.div>
-        )}
-        {view === 'collab' && (
-          <motion.div key="collab" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
-            <CollabDashboard />
-          </motion.div>
-        )}
-        {view === 'missionhq' && (
-          <motion.div key="missionhq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
-            <MissionHQ />
           </motion.div>
         )}
       </AnimatePresence>
