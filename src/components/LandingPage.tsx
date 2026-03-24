@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useInView } from 'motion/react';
 import {
   Bot, Calendar, Bell, FileText, Users, LogIn, Sparkles,
   ArrowRight, Zap, Clock, TrendingUp, X, CheckCircle,
+  MessageSquare, PhoneCall, Mail, Send,
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -180,7 +181,7 @@ const FEATURES = [
     bg: 'bg-green-500/10 border-green-500/20',
     badge: 'Automation',
     title: 'Multi-Channel Reminders',
-    desc: 'AI-personalised SMS, WhatsApp, email, and phone reminders. Reduce no-shows by up to 70% without lifting a finger.',
+    desc: 'SMS, WhatsApp, phone call, and email — all AI-personalised per patient. One click sends the right message on the right channel.',
   },
   {
     icon: Users,
@@ -377,6 +378,101 @@ export function LandingPage({ onLogin }: LandingPageProps) {
         </div>
       </section>
 
+      {/* ── Reminders Showcase ── */}
+      <section className="py-24 px-6 border-t border-border">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn className="text-center mb-16">
+            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-green-400 mb-4">Zero No-Shows</p>
+            <h2 className="text-4xl md:text-5xl font-display font-bold tracking-tight mb-4">
+              Reach patients<br />wherever they are.
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Aura sends AI-personalised reminders across every channel — automatically, before every appointment.
+            </p>
+          </FadeIn>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            {/* Channel cards */}
+            {[
+              {
+                icon: Send,
+                label: 'SMS',
+                color: 'text-blue-400',
+                bg: 'bg-blue-500/10 border-blue-500/20',
+                glow: 'shadow-blue-500/10',
+                sample: 'Hi Sarah, reminder: appointment with Dr. Kunal tomorrow at 2:00 PM. Reply CONFIRM or CANCEL.',
+                delay: 0,
+              },
+              {
+                icon: MessageSquare,
+                label: 'WhatsApp',
+                color: 'text-green-400',
+                bg: 'bg-green-500/10 border-green-500/20',
+                glow: 'shadow-green-500/10',
+                sample: '👋 Hi John! Just a friendly reminder about your visit with Dr. Kunal on Friday at 10 AM. See you soon!',
+                delay: 0.12,
+              },
+              {
+                icon: PhoneCall,
+                label: 'Phone Call',
+                color: 'text-purple-400',
+                bg: 'bg-purple-500/10 border-purple-500/20',
+                glow: 'shadow-purple-500/10',
+                sample: 'An automated call is placed to the patient with appointment details — no staff effort required.',
+                delay: 0.24,
+              },
+              {
+                icon: Mail,
+                label: 'Email',
+                color: 'text-yellow-400',
+                bg: 'bg-yellow-500/10 border-yellow-500/20',
+                glow: 'shadow-yellow-500/10',
+                sample: 'A polished, AI-written email reminder with appointment date, time, and clinic details — sent instantly.',
+                delay: 0.36,
+              },
+            ].map((ch) => (
+              <FadeIn key={ch.label} delay={ch.delay}>
+                <motion.div
+                  whileHover={{ y: -5 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className={`glass-card p-7 border ${ch.bg} h-full`}
+                >
+                  <div className="flex items-center gap-4 mb-5">
+                    <div className={`w-12 h-12 rounded-2xl ${ch.bg} border flex items-center justify-center`}>
+                      <ch.icon className={`w-6 h-6 ${ch.color}`} />
+                    </div>
+                    <div>
+                      <p className="font-display font-bold text-lg">{ch.label}</p>
+                      <span className={`text-[9px] font-bold uppercase tracking-widest ${ch.color}`}>Auto-sent by Aura</span>
+                    </div>
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
+                      transition={{ duration: 2, repeat: Infinity, delay: ch.delay }}
+                      className={`ml-auto w-2 h-2 rounded-full ${ch.color.replace('text-', 'bg-')}`}
+                    />
+                  </div>
+                  <div className={`p-4 rounded-xl ${ch.bg} border text-sm text-muted-foreground italic leading-relaxed`}>
+                    "{ch.sample}"
+                  </div>
+                </motion.div>
+              </FadeIn>
+            ))}
+          </div>
+
+          {/* Single stat callout */}
+          <FadeIn delay={0.2}>
+            <div className="glass-card p-8 border border-green-500/10 text-center glow">
+              <p className="text-5xl font-display font-bold text-green-400 mb-2">
+                <Counter end={70} suffix="%" />
+              </p>
+              <p className="text-sm text-muted-foreground font-bold uppercase tracking-widest">
+                Average reduction in appointment no-shows with automated reminders
+              </p>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
       {/* ── Stats ── */}
       <section className="py-16 px-6 border-y border-border">
         <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -468,7 +564,7 @@ export function LandingPage({ onLogin }: LandingPageProps) {
             {[
               'Natural language scheduling',
               'Prescription image scanning',
-              'SMS, WhatsApp & email reminders',
+              'SMS, WhatsApp, phone call & email reminders',
               'Google Calendar integration',
               'Full patient visit history',
               'Smart conflict detection',
