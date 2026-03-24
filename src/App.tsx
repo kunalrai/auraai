@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc, Timestamp, query, collection, orderBy, limit, onSn
 import { auth, loginWithGoogle, logout, db, googleProvider } from './firebase';
 import { Doctor } from './types.ts';
 import { Layout } from './components/Layout.tsx';
+import { LandingPage } from './components/LandingPage.tsx';
 import { DoctorDashboard } from './components/DoctorDashboard.tsx';
 import { AIAssistant } from './components/AIAssistant.tsx';
 import { CalendarView } from './components/CalendarView.tsx';
@@ -13,8 +14,8 @@ import { SettingsView } from './components/SettingsView.tsx';
 import { CollabDashboard } from './components/CollabDashboard.tsx';
 import { MissionHQ } from './components/MissionHQ.tsx';
 import { OverviewDashboard } from './components/OverviewDashboard.tsx';
-import { LogIn, Calendar, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Loader2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq' | 'admin';
@@ -147,51 +148,7 @@ export default function App() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/10 blur-[120px] rounded-full" />
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full glass-card p-10 glow relative z-10"
-        >
-          <div className="flex flex-col items-center text-center mb-10">
-            <div className="w-16 h-16 bg-blue-600/20 flex items-center justify-center rounded-2xl mb-6 border border-blue-500/30">
-              <Calendar className="text-blue-400 w-8 h-8" />
-            </div>
-            <h1 className="text-4xl font-display font-bold tracking-tight gradient-text mb-3">Aura AI</h1>
-            <p className="text-text/50 font-sans leading-relaxed">
-              The next generation of medical practice management. Intelligent, seamless, and patient-focused.
-            </p>
-          </div>
-
-          <button
-            onClick={handleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 px-6 rounded-xl font-bold hover:bg-white/90 transition-all active:scale-[0.98] shadow-xl"
-          >
-            <LogIn className="w-5 h-5" />
-            Sign in with Google
-          </button>
-
-          <div className="mt-8 pt-8 border-t border-white/5 text-center space-y-3">
-            <div className="flex items-center justify-center gap-4">
-              <button onClick={() => navigate('/collab')} className="text-[10px] text-text/30 uppercase tracking-widest font-bold hover:text-text/60 transition-colors">
-                Collab
-              </button>
-              <span className="text-text/10">|</span>
-              <button onClick={() => navigate('/missionhq')} className="text-[10px] text-text/30 uppercase tracking-widest font-bold hover:text-text/60 transition-colors">
-                MissionHQ
-              </button>
-            </div>
-            <p className="text-[10px] text-text/30 uppercase tracking-[0.2em] font-bold">
-              Powered by Gemini 3.1 Pro
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    );
+    return <LandingPage onLogin={handleLogin} />;
   }
 
   return (
