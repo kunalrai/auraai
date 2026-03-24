@@ -1,5 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+
+function getCurrentBillingPeriod(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 interface CommLogSummary {
   totalSms: number;
@@ -22,6 +28,7 @@ export const record = mutation({
     error: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const sentAt = Date.now();
     await ctx.db.insert("commLog", {
       doctorId: args.doctorId,
       patientId: args.patientId,
@@ -29,10 +36,29 @@ export const record = mutation({
       patientPhone: args.patientPhone,
       type: args.type,
       status: args.status,
-      sentAt: Date.now(),
+      sentAt,
       message: args.message,
       error: args.error,
     });
+
+    const period = getCurrentBillingPeriod(sentAt);
+    await ctx.runMutation(internal.billing.getOrCreateSummaryRow, {
+      doctorId: args.doctorId,
+      billingPeriod: period,
+    });
+
+    if (args.type === "SMS" && args.status === "SENT") {
+      await ctx.runMutation(internal.billing.incrementSms, {
+        doctorId: args.doctorId,
+        period,
+      });
+    }
+    if (args.type === "CALL" && (args.status === "SENT" || args.status === "ANSWERED")) {
+      await ctx.runMutation(internal.billing.incrementCall, {
+        doctorId: args.doctorId,
+        period,
+      });
+    }
   },
 });
 

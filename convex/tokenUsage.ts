@@ -1,5 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
+
+function getCurrentBillingPeriod(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export const recordUsageInternal = internalMutation({
   args: {
@@ -10,13 +16,27 @@ export const recordUsageInternal = internalMutation({
     totalTokens: v.number(),
   },
   handler: async (ctx, args) => {
+    const createdAt = Date.now();
     await ctx.db.insert("tokenUsage", {
       userId: args.userId,
       model: args.model,
       promptTokens: args.promptTokens,
       completionTokens: args.completionTokens,
       totalTokens: args.totalTokens,
-      createdAt: Date.now(),
+      createdAt,
+    });
+
+    const period = getCurrentBillingPeriod(createdAt);
+    await ctx.runMutation(internal.billing.getOrCreateSummaryRow, {
+      doctorId: args.userId,
+      billingPeriod: period,
+    });
+    await ctx.runMutation(internal.billing.incrementTokens, {
+      doctorId: args.userId,
+      period,
+      promptTokens: args.promptTokens,
+      completionTokens: args.completionTokens,
+      totalTokens: args.totalTokens,
     });
   },
 });
@@ -30,13 +50,27 @@ export const recordUsage = mutation({
     totalTokens: v.number(),
   },
   handler: async (ctx, args) => {
+    const createdAt = Date.now();
     await ctx.db.insert("tokenUsage", {
       userId: args.userId,
       model: args.model,
       promptTokens: args.promptTokens,
       completionTokens: args.completionTokens,
       totalTokens: args.totalTokens,
-      createdAt: Date.now(),
+      createdAt,
+    });
+
+    const period = getCurrentBillingPeriod(createdAt);
+    await ctx.runMutation(internal.billing.getOrCreateSummaryRow, {
+      doctorId: args.userId,
+      billingPeriod: period,
+    });
+    await ctx.runMutation(internal.billing.incrementTokens, {
+      doctorId: args.userId,
+      period,
+      promptTokens: args.promptTokens,
+      completionTokens: args.completionTokens,
+      totalTokens: args.totalTokens,
     });
   },
 });

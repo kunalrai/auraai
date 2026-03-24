@@ -10,6 +10,7 @@
 
 import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
+import type * as billing from "../billing.js";
 import type * as collab from "../collab.js";
 import type * as commLog from "../commLog.js";
 import type * as crons from "../crons.js";
@@ -31,6 +32,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   auth: typeof auth;
+  billing: typeof billing;
   collab: typeof collab;
   commLog: typeof commLog;
   crons: typeof crons;
