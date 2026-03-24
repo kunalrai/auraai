@@ -19,7 +19,7 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
     try {
-      await signIn("password", { email, password, name, flow: "signup", redirectTo: "/" });
+      await signIn("password", { email, password, name, flow: "signUp", redirectTo: "/" });
       setSent(true);
     } catch (err: any) {
       setError(err?.message || "Sign-up failed. Please try again.");
