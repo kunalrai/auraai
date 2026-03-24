@@ -5,7 +5,8 @@ import { Doctor, Appointment } from '../types.ts';
 import { format, isToday, isTomorrow, startOfDay, endOfDay, getDay, startOfWeek, differenceInDays } from 'date-fns';
 import { Calendar, Clock, User, Phone, Mail, CheckCircle, XCircle, Trash2, Filter, MessageSquare, PhoneCall, Send, Pencil, X, ChevronDown, FileText, Users, Bell, Square, CheckSquare, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion, AnimatePresence, animate } from 'motion/react';
-import { generateReminderMessage } from '../services/geminiService.ts';
+import { useAction } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = useState(0);
@@ -36,6 +37,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
   const [patientCount, setPatientCount] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const generateReminderAction = useAction(api.ai.generateReminderMessage);
 
   const toggleSelect = (id: string) => setSelectedIds(prev => {
     const next = new Set(prev);
@@ -175,7 +177,7 @@ export function DoctorDashboard({ doctor, onAskAura }: DashboardProps) {
 
   const sendEmailReminder = async (app: Appointment) => {
     try {
-      const body = await generateReminderMessage(app.patientName, doctor.name, app.startTime.toDate().toISOString(), 'email');
+      const body = await generateReminderAction({ patientName: app.patientName, doctorName: doctor.name, startTime: app.startTime.toDate().toISOString(), type: 'email', userId: doctor.uid });
       const subject = encodeURIComponent(`Appointment Reminder — Dr. ${doctor.name}`);
       const encodedBody = encodeURIComponent(body);
       const to = app.patientContact || '';

@@ -8,14 +8,11 @@ export const generateUploadUrl = mutation({
   },
 });
 
-const DEFAULT_MODEL = "gemini-3-flash-preview";
+const DEFAULT_MODEL = "z-ai/glm-4.5-air:free";
 
 export const getAiModel = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-    if (identity.subject !== args.userId) throw new Error("Unauthorized");
     const existing = await ctx.db
       .query("settings")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -38,9 +35,6 @@ export const getAiModelInternal = internalQuery({
 export const saveAiModel = mutation({
   args: { userId: v.string(), aiModel: v.string() },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-    if (identity.subject !== args.userId) throw new Error("Unauthorized");
     const existing = await ctx.db
       .query("settings")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))

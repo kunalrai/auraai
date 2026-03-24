@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { collection, addDoc, Timestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import { Doctor, Appointment, ChatMessage } from '../types.ts';
-import { parseBookingRequest, BookingDetails } from '../services/geminiService.ts';
+import { BookingDetails } from '../types.ts';
 import { Send, Bot, User, Sparkles, Calendar, Loader2, AlertTriangle, CheckCircle, XCircle, Paperclip, X, Image } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, isTomorrow } from 'date-fns';
@@ -27,6 +27,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
   const generateUploadUrl = useMutation(api.settings.generateUploadUrl);
   const chatAction = useAction(api.ai.chat);
   const parsePrescriptionAction = useAction(api.patients.parsePrescription);
+  const parseBookingRequestAction = useAction(api.ai.parseBookingRequest);
 
   const [selectedFile, setSelectedFile] = useState<{ name: string; mimeType: string; data: string; storageId?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -253,8 +254,12 @@ export function AIAssistant({ doctor }: AssistantProps) {
         }
       } else {
         const currentDateTime = new Date().toISOString();
-        
-        const booking = await parseBookingRequest(userMessage, currentDateTime);
+
+        const booking = await parseBookingRequestAction({
+          prompt: userMessage,
+          currentDateTime,
+          userId: doctor.uid ?? "",
+        });
         
         if (booking) {
           const availWarning = checkAvailability(booking);

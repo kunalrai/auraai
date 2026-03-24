@@ -51,8 +51,8 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
   const [modelInput, setModelInput] = useState('');
   const [savingModel, setSavingModel] = useState(false);
 
-  const currentPeriodUsage = useQuery(api.billing.getMyCurrentPeriod);
-  const usageHistory = useQuery(api.billing.getMyUsage);
+  const currentPeriodUsage = useQuery(api.billing.getMyCurrentPeriod, { doctorId: doctor.uid });
+  const usageHistory = useQuery(api.billing.getMyUsage, { doctorId: doctor.uid });
 
   const commSummary = useQuery(api.commLog.getSummary, { doctorId: doctor.uid });
   const [commTypeFilter, setCommTypeFilter] = useState<string>("ALL");
@@ -65,7 +65,7 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
 
   React.useEffect(() => {
     if (aiModel !== undefined) {
-      setModelInput(aiModel ?? 'gemini-3-flash-preview');
+      setModelInput(aiModel ?? 'z-ai/glm-4.5-air:free');
     }
   }, [aiModel]);
 
@@ -338,7 +338,7 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
         </h3>
         <p className="text-xs text-muted-foreground">Choose which AI model Aura uses for chat and appointment booking.</p>
         <div className="space-y-3">
-          <Select value={modelInput || 'gemini-3-flash-preview'} onValueChange={setModelInput}>
+          <Select value={modelInput || 'z-ai/glm-4.5-air:free'} onValueChange={setModelInput}>
             <SelectTrigger className="max-w-md">
               <SelectValue placeholder="Select a model..." />
             </SelectTrigger>
@@ -370,7 +370,7 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
               {savingModel ? 'Saving...' : 'Save Model'}
             </Button>
             <span className="text-xs text-muted-foreground">
-              Default: <code className="text-muted-foreground/80">gemini-3-flash-preview</code>
+              Default: <code className="text-muted-foreground/80">z-ai/glm-4.5-air:free</code>
             </span>
           </div>
         </div>

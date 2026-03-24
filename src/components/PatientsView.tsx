@@ -5,7 +5,8 @@ import { Doctor, Patient, Appointment } from '../types.ts';
 import { User, Phone, Mail, Plus, Trash2, MessageSquare, PhoneCall, Send, X, Search, History, ChevronDown, Clock, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
-import { generateReminderMessage } from '../services/geminiService.ts';
+import { useAction } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 interface PatientsViewProps {
   doctor: Doctor;
@@ -25,6 +26,7 @@ export function PatientsView({ doctor }: PatientsViewProps) {
   const [notesDirty, setNotesDirty] = useState<Set<string>>(new Set());
   const [notesSavedAt, setNotesSavedAt] = useState<Record<string, Date>>({});
   const [savingNotes, setSavingNotes] = useState<Set<string>>(new Set());
+  const generateReminderAction = useAction(api.ai.generateReminderMessage);
 
   const toggleHistory = (id: string) => {
     setExpandedHistory(prev => {
@@ -105,7 +107,7 @@ export function PatientsView({ doctor }: PatientsViewProps) {
       const startTime = nextVisit
         ? nextVisit.startTime.toDate().toISOString()
         : new Date(Date.now() + 86400000).toISOString();
-      const body = await generateReminderMessage(patient.name, doctor.name, startTime, 'email');
+      const body = await generateReminderAction({ patientName: patient.name, doctorName: doctor.name, startTime, type: 'email', userId: doctor.uid });
       const subject = encodeURIComponent(`Appointment Reminder — Dr. ${doctor.name}`);
       window.open(`mailto:${patient.email}?subject=${subject}&body=${encodeURIComponent(body)}`, '_blank');
       setSendingReminder(patient.id);

@@ -116,6 +116,98 @@ export const chat = action({
   },
 });
 
+export const parseBookingRequest = action({
+  args: {
+    prompt: v.string(),
+    currentDateTime: v.string(),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const existing = await ctx.runQuery(internal.settings.getAiModelInternal, { userId: args.userId });
+    const model: string = existing ?? DEFAULT_MODEL;
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) return null;
+
+    const systemPrompt = `Extract appointment booking details from the user's request. Return ONLY valid JSON with these fields: patientName (string, required), patientContact (string, optional), startTime (string ISO 8601, required), notes (string, optional), reminderType ("text"|"phone"|"email"|"none", optional), recurrence ({frequency: "weekly"|"monthly", count: number}, optional). If the request is not about booking an appointment, return {"notABooking": true}.`;
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Current date and time: ${args.currentDateTime}. Request: "${args.prompt}"` },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+    const content = data.choices?.[0]?.message?.content ?? "";
+
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed.notABooking || !parsed.patientName || !parsed.startTime) return null;
+      return parsed as { patientName: string; patientContact?: string; startTime: string; notes?: string; reminderType?: string; recurrence?: { frequency: string; count: number } };
+    } catch {
+      return null;
+    }
+  },
+});
+
+export const generateReminderMessage = action({
+  args: {
+    patientName: v.string(),
+    doctorName: v.string(),
+    startTime: v.string(),
+    type: v.union(v.literal("text"), v.literal("email")),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const existing = await ctx.runQuery(internal.settings.getAiModelInternal, { userId: args.userId });
+    const model: string = existing ?? DEFAULT_MODEL;
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) return `Hi ${args.patientName}, this is a reminder for your appointment with Dr. ${args.doctorName}.`;
+
+    const date = new Date(args.startTime).toLocaleString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit",
+    });
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "user", content: `Generate a polite ${args.type} reminder for ${args.patientName} about their appointment with Dr. ${args.doctorName} on ${date}. Keep it brief and professional.` },
+        ],
+      }),
+    });
+
+    if (!response.ok) return `Hi ${args.patientName}, this is a reminder for your appointment with Dr. ${args.doctorName}.`;
+
+    const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+    return data.choices?.[0]?.message?.content ?? `Hi ${args.patientName}, this is a reminder for your appointment with Dr. ${args.doctorName}.`;
+  },
+});
+
 interface VisionMessagePart {
   type: "text" | "image_url";
   text?: string;

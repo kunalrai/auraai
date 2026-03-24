@@ -41,3 +41,12 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
 }
+
+export interface BookingDetails {
+  patientName: string;
+  patientContact?: string;
+  startTime: string;
+  notes?: string;
+  reminderType?: 'text' | 'phone' | 'email' | 'none';
+  recurrence?: { frequency: 'weekly' | 'monthly'; count: number };
+}
