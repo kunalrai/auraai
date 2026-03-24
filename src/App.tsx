@@ -168,7 +168,16 @@ export default function App() {
             Sign in with Google
           </button>
 
-          <div className="mt-8 pt-8 border-t border-white/5 text-center">
+          <div className="mt-8 pt-8 border-t border-white/5 text-center space-y-3">
+            <div className="flex items-center justify-center gap-4">
+              <button onClick={() => navigate('/collab')} className="text-[10px] text-text/30 uppercase tracking-widest font-bold hover:text-text/60 transition-colors">
+                Collab
+              </button>
+              <span className="text-text/10">|</span>
+              <button onClick={() => navigate('/missionhq')} className="text-[10px] text-text/30 uppercase tracking-widest font-bold hover:text-text/60 transition-colors">
+                MissionHQ
+              </button>
+            </div>
             <p className="text-[10px] text-text/30 uppercase tracking-[0.2em] font-bold">
               Powered by Gemini 3.1 Pro
             </p>
