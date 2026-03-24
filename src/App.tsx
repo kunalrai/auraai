@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuthActions } from '@convex-dev/auth/react';
-import { useMutation, useQuery } from 'convex/react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp, query, collection, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { auth, db } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { auth, loginWithGoogle, logout, db, googleProvider } from './firebase';
 import { Doctor } from './types.ts';
 import { Layout } from './components/Layout.tsx';
 import { DoctorDashboard } from './components/DoctorDashboard.tsx';
@@ -15,22 +13,17 @@ import { SettingsView } from './components/SettingsView.tsx';
 import { CollabDashboard } from './components/CollabDashboard.tsx';
 import { MissionHQ } from './components/MissionHQ.tsx';
 import { OverviewDashboard } from './components/OverviewDashboard.tsx';
-import SignupPage from './components/SignupPage.tsx';
-import AdminBillingView from './components/AdminBillingView.tsx';
 import { LogIn, Calendar, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { api } from '../convex/_generated/api';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq' | 'admin';
 
 export default function App() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signOut } = useAuthActions();
-  const authStatus = useQuery(api.doctors.authStatus);
-  const createProfile = useMutation(api.doctors.createProfile);
+  const navigate = useNavigate();
 
-  const [user, setUser] = useState<{ uid: string; displayName: string | null; email: string | null } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<AppView>('dashboard');
@@ -45,36 +38,43 @@ export default function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  if (location.pathname === '/signup') {
-    return <SignupPage />;
-  }
-  if (location.pathname === '/missionhq') {
-    return <MissionHQ />;
-  }
-  if (location.pathname === '/collab') {
-    return <CollabDashboard />;
-  }
-  if (location.pathname === '/overview') {
-    return <OverviewDashboard />;
-  }
+  const handleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        setGoogleToken(credential.accessToken);
+        localStorage.setItem('google_token', credential.accessToken);
+      }
+    } catch (error) {
+      console.error("Login Error:", error);
+    }
+  };
 
   const handleLogout = async () => {
-    await signOut();
+    await logout();
+    setGoogleToken(null);
+    localStorage.removeItem('google_token');
+  };
+
+  const handleGoogleReauth = () => {
+    setGoogleToken(null);
+    localStorage.removeItem('google_token');
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser({ uid: firebaseUser.uid, displayName: firebaseUser.displayName, email: firebaseUser.email });
-        const docRef = doc(db, 'doctors', firebaseUser.uid);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        const docRef = doc(db, 'doctors', currentUser.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setDoctor(docSnap.data() as Doctor);
         } else {
           const newDoctor: Doctor = {
-            uid: firebaseUser.uid,
-            name: firebaseUser.displayName || 'Dr. Anonymous',
-            email: firebaseUser.email || '',
+            uid: currentUser.uid,
+            name: currentUser.displayName || 'Dr. Anonymous',
+            email: currentUser.email || '',
             createdAt: Timestamp.now(),
           };
           await setDoc(docRef, newDoctor);
@@ -104,17 +104,6 @@ export default function App() {
     return () => unsub();
   }, [doctor?.uid]);
 
-  useEffect(() => {
-    if (authStatus && doctor) {
-      createProfile({
-        name: doctor.name || 'Dr. Anonymous',
-        clinicName: doctor.clinicName || 'My Clinic',
-        email: doctor.email || '',
-        phone: doctor.phone,
-      }).catch(console.error);
-    }
-  }, [authStatus, doctor]);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg">
@@ -131,7 +120,26 @@ export default function App() {
     );
   }
 
-  if (!authStatus) {
+  if (user && !doctor) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <div className="max-w-md w-full glass-card p-8 glow">
+          <h2 className="text-xl font-display font-bold mb-4 text-red-400">Profile Error</h2>
+          <p className="text-text/60 mb-6 font-sans leading-relaxed">
+            We couldn't load your doctor profile. This might be due to a connection issue or missing permissions.
+          </p>
+          <button
+            onClick={() => logout()}
+            className="w-full bg-white text-black py-3 rounded-lg font-bold hover:bg-white/90 transition-all"
+          >
+            Sign Out & Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-4 relative overflow-hidden">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/10 blur-[120px] rounded-full" />
@@ -152,21 +160,13 @@ export default function App() {
             </p>
           </div>
 
-          <div className="space-y-3">
-            <button
-              onClick={() => navigate('/signup')}
-              className="w-full flex items-center justify-center gap-3 bg-blue-600 text-white py-4 px-6 rounded-xl font-bold hover:bg-blue-500 transition-all shadow-xl"
-            >
-              <LogIn className="w-5 h-5" />
-              Sign in with Email
-            </button>
-            <button
-              onClick={() => navigate('/signup')}
-              className="w-full flex items-center justify-center gap-3 bg-blue-600/10 text-blue-400 border border-blue-500/20 py-4 px-6 rounded-xl font-bold hover:bg-blue-600/20 transition-all"
-            >
-              Create Account
-            </button>
-          </div>
+          <button
+            onClick={handleLogin}
+            className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 px-6 rounded-xl font-bold hover:bg-white/90 transition-all active:scale-[0.98] shadow-xl"
+          >
+            <LogIn className="w-5 h-5" />
+            Sign in with Google
+          </button>
 
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
             <p className="text-[10px] text-text/30 uppercase tracking-[0.2em] font-bold">
@@ -201,7 +201,7 @@ export default function App() {
         )}
         {view === 'calendar' && (
           <motion.div key="calendar" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
-            <CalendarView doctor={doctor!} googleToken={googleToken} onReauth={handleLogout} />
+            <CalendarView doctor={doctor!} googleToken={googleToken} onReauth={handleGoogleReauth} />
           </motion.div>
         )}
         {view === 'patients' && (
@@ -222,11 +222,6 @@ export default function App() {
         {view === 'missionhq' && (
           <motion.div key="missionhq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
             <MissionHQ />
-          </motion.div>
-        )}
-        {view === 'admin' && (
-          <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
-            <AdminBillingView />
           </motion.div>
         )}
       </AnimatePresence>
