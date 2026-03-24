@@ -39,6 +39,9 @@ export const record = mutation({
 export const getSummary = query({
   args: { doctorId: v.string() },
   handler: async (ctx, args): Promise<CommLogSummary> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.doctorId) throw new Error("Unauthorized");
     const logs = await ctx.db
       .query("commLog")
       .withIndex("by_doctor", (q) => q.eq("doctorId", args.doctorId))
@@ -67,6 +70,9 @@ export const getSummary = query({
 export const getHistory = query({
   args: { doctorId: v.string(), type: v.optional(v.union(v.literal("SMS"), v.literal("CALL"))), status: v.optional(v.union(v.literal("SENT"), v.literal("FAILED"), v.literal("ANSWERED"), v.literal("NO_ANSWER"))) },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.doctorId) throw new Error("Unauthorized");
     let logs = await ctx.db
       .query("commLog")
       .withIndex("by_doctor", (q) => q.eq("doctorId", args.doctorId))

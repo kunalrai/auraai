@@ -32,6 +32,9 @@ export const upsert = mutation({
     doctorNote: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.doctorId) throw new Error("Unauthorized");
     const existing = await ctx.db
       .query("patients")
       .withIndex("by_doctor", (q) => q.eq("doctorId", args.doctorId))
@@ -72,8 +75,11 @@ export const upsertWithId = mutation({
     doctorNote: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
     const patient = await ctx.db.get(args.patientId);
     if (!patient) throw new Error("Patient not found");
+    if (patient.doctorId !== identity.subject) throw new Error("Unauthorized");
 
     const visit = {
       date: Date.now(),
@@ -92,6 +98,9 @@ export const upsertWithId = mutation({
 export const getByName = query({
   args: { doctorId: v.string(), name: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.doctorId) throw new Error("Unauthorized");
     const patients = await ctx.db
       .query("patients")
       .withIndex("by_doctor", (q) => q.eq("doctorId", args.doctorId))
@@ -115,8 +124,11 @@ export const getByName = query({
 export const getHistory = query({
   args: { patientId: v.id("patients") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
     const patient = await ctx.db.get(args.patientId);
     if (!patient) return null;
+    if (patient.doctorId !== identity.subject) throw new Error("Unauthorized");
     return {
       ...patient,
       visits: [...patient.visits].sort((a, b) => b.date - a.date),
@@ -127,6 +139,9 @@ export const getHistory = query({
 export const list = query({
   args: { doctorId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.doctorId) throw new Error("Unauthorized");
     const patients = await ctx.db
       .query("patients")
       .withIndex("by_doctor", (q) => q.eq("doctorId", args.doctorId))
@@ -143,6 +158,9 @@ export const list = query({
 export const listWithDateRange = query({
   args: { doctorId: v.string(), startDate: v.number(), endDate: v.number() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.doctorId) throw new Error("Unauthorized");
     const patients = await ctx.db
       .query("patients")
       .withIndex("by_doctor", (q) => q.eq("doctorId", args.doctorId))
@@ -167,8 +185,11 @@ export const listWithDateRange = query({
 export const getById = query({
   args: { patientId: v.id("patients") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
     const patient = await ctx.db.get(args.patientId);
     if (!patient) return null;
+    if (patient.doctorId !== identity.subject) throw new Error("Unauthorized");
     return {
       ...patient,
       latestVisit: patient.visits[patient.visits.length - 1] ?? null,
@@ -197,15 +218,27 @@ export const createReminder = mutation({
 });
 
 export const listPendingReminders = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { doctorId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.doctorId) throw new Error("Unauthorized");
+
+    const myPatients = await ctx.db
+      .query("patients")
+      .withIndex("by_doctor", (q) => q.eq("doctorId", args.doctorId))
+      .collect();
+    const patientIds = new Set(myPatients.map((p) => p._id));
+
     const now = Date.now();
-    return await ctx.db
+    const allPending = await ctx.db
       .query("reminders")
       .withIndex("by_status_date", (q) =>
         q.eq("status", "PENDING").lte("reminderDate", now)
       )
       .collect();
+
+    return allPending.filter((r) => patientIds.has(r.patientId));
   },
 });
 

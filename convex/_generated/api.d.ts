@@ -9,10 +9,13 @@
  */
 
 import type * as ai from "../ai.js";
+import type * as auth from "../auth.js";
 import type * as collab from "../collab.js";
 import type * as commLog from "../commLog.js";
 import type * as crons from "../crons.js";
+import type * as doctors from "../doctors.js";
 import type * as goals from "../goals.js";
+import type * as http from "../http.js";
 import type * as messages from "../messages.js";
 import type * as patients from "../patients.js";
 import type * as reminders from "../reminders.js";
@@ -27,10 +30,13 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   ai: typeof ai;
+  auth: typeof auth;
   collab: typeof collab;
   commLog: typeof commLog;
   crons: typeof crons;
+  doctors: typeof doctors;
   goals: typeof goals;
+  http: typeof http;
   messages: typeof messages;
   patients: typeof patients;
   reminders: typeof reminders;

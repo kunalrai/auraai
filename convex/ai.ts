@@ -36,6 +36,9 @@ export const chat = action({
     userId: v.string(),
   },
   handler: async (ctx, args: { messages: { role: string; content: string }[]; userId: string }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.userId) throw new Error("Unauthorized");
     const existing = await ctx.runQuery(internal.settings.getAiModelInternal, { userId: args.userId });
     const model: string = existing ?? DEFAULT_MODEL;
 
@@ -125,6 +128,9 @@ export const chatWithVision = action({
     userId: v.string(),
   },
   handler: async (ctx, args: { messages: { role: string; content: string | VisionMessagePart[] }[]; userId: string }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.userId) throw new Error("Unauthorized");
     const existing = await ctx.runQuery(internal.settings.getAiModelInternal, { userId: args.userId });
     const model: string = existing ?? DEFAULT_MODEL;
 

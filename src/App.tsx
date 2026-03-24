@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import { useAuthActions } from '@convex-dev/auth/react';
+import { useMutation, useQuery } from 'convex/react';
 import { doc, getDoc, setDoc, Timestamp, query, collection, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { auth, loginWithGoogle, logout, db, googleProvider } from './firebase';
+import { auth, db } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Doctor } from './types.ts';
 import { Layout } from './components/Layout.tsx';
 import { DoctorDashboard } from './components/DoctorDashboard.tsx';
@@ -13,29 +15,23 @@ import { SettingsView } from './components/SettingsView.tsx';
 import { CollabDashboard } from './components/CollabDashboard.tsx';
 import { MissionHQ } from './components/MissionHQ.tsx';
 import { OverviewDashboard } from './components/OverviewDashboard.tsx';
+import SignupPage from './components/SignupPage.tsx';
 import { LogIn, Calendar, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { api } from '../convex/_generated/api';
+
+type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq';
 
 export default function App() {
-  const location = useLocation();
+  const navigate = useNavigate();
+  const { signIn, signOut } = useAuthActions();
+  const authStatus = useQuery(api.doctors.authStatus);
+  const createProfile = useMutation(api.doctors.createProfile);
 
-  // Dev tools — accessible without auth
-  if (location.pathname === '/missionhq') {
-    return <MissionHQ />;
-  }
-  if (location.pathname === '/collab') {
-    return <CollabDashboard />;
-  }
-  if (location.pathname === '/overview') {
-    return <OverviewDashboard />;
-  }
-
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ uid: string; displayName: string | null; email: string | null } | null>(null);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq'>('dashboard');
-  type AppView = 'dashboard' | 'assistant' | 'calendar' | 'patients' | 'settings' | 'collab' | 'missionhq';
+  const [view, setView] = useState<AppView>('dashboard');
   const [googleToken, setGoogleToken] = useState<string | null>(localStorage.getItem('google_token'));
   const [theme, setTheme] = useState<'dark' | 'light'>(localStorage.getItem('theme') as 'dark' | 'light' || 'dark');
   const [appointmentCount, setAppointmentCount] = useState(0);
@@ -47,74 +43,58 @@ export default function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
+  if (location.pathname === '/signup') {
+    return <SignupPage />;
+  }
+  if (location.pathname === '/missionhq') {
+    return <MissionHQ />;
+  }
+  if (location.pathname === '/collab') {
+    return <CollabDashboard />;
+  }
+  if (location.pathname === '/overview') {
+    return <OverviewDashboard />;
+  }
+
   const handleLogin = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (credential?.accessToken) {
-        setGoogleToken(credential.accessToken);
-        localStorage.setItem('google_token', credential.accessToken);
-      }
+      await signIn("google", { redirectTo: "/" });
     } catch (error) {
       console.error("Login Error:", error);
     }
   };
 
   const handleLogout = async () => {
-    await logout();
-    setGoogleToken(null);
-    localStorage.removeItem('google_token');
-  };
-
-  const handleGoogleReauth = () => {
-    setGoogleToken(null);
-    localStorage.removeItem('google_token');
+    await signOut();
   };
 
   useEffect(() => {
-    console.log("App: Setting up onAuthStateChanged listener");
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      console.log("App: onAuthStateChanged fired, user:", currentUser?.uid);
-      try {
-        setUser(currentUser);
-        if (currentUser) {
-          console.log("App: Fetching doctor doc for:", currentUser.uid);
-          const docRef = doc(db, 'doctors', currentUser.uid);
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            console.log("App: Doctor doc exists");
-            setDoctor(docSnap.data() as Doctor);
-          } else {
-            console.log("App: Doctor doc does not exist, creating...");
-            // Create new doctor profile
-            const newDoctor: Doctor = {
-              uid: currentUser.uid,
-              name: currentUser.displayName || 'Dr. Anonymous',
-              email: currentUser.email || '',
-              createdAt: Timestamp.now(),
-            };
-            await setDoc(docRef, newDoctor);
-            console.log("App: Doctor doc created");
-            setDoctor(newDoctor);
-          }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser({ uid: firebaseUser.uid, displayName: firebaseUser.displayName, email: firebaseUser.email });
+        const docRef = doc(db, 'doctors', firebaseUser.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setDoctor(docSnap.data() as Doctor);
         } else {
-          console.log("App: No user logged in");
-          setDoctor(null);
+          const newDoctor: Doctor = {
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName || 'Dr. Anonymous',
+            email: firebaseUser.email || '',
+            createdAt: Timestamp.now(),
+          };
+          await setDoc(docRef, newDoctor);
+          setDoctor(newDoctor);
         }
-      } catch (error) {
-        console.error("App: Error fetching doctor profile:", error);
-        // If it fails, we still want to stop loading so the user can see the sign-in screen or an error
+      } else {
+        setUser(null);
         setDoctor(null);
-      } finally {
-        console.log("App: Setting loading to false");
-        setLoading(false);
       }
+      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // Track new appointments for notification badge
   useEffect(() => {
     if (!doctor?.uid) return;
     const lastOpened = parseInt(localStorage.getItem('aura_assistant_last_opened') || '0');
@@ -129,6 +109,17 @@ export default function App() {
     });
     return () => unsub();
   }, [doctor?.uid]);
+
+  useEffect(() => {
+    if (authStatus && doctor) {
+      createProfile({
+        name: doctor.name || 'Dr. Anonymous',
+        clinicName: doctor.clinicName || 'My Clinic',
+        email: doctor.email || '',
+        phone: doctor.phone,
+      }).catch(console.error);
+    }
+  }, [authStatus, doctor]);
 
   if (loading) {
     return (
@@ -146,33 +137,13 @@ export default function App() {
     );
   }
 
-  if (user && !doctor) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <div className="max-w-md w-full glass-card p-8 glow">
-          <h2 className="text-xl font-display font-bold mb-4 text-red-400">Profile Error</h2>
-          <p className="text-text/60 mb-6 font-sans leading-relaxed">
-            We couldn't load your doctor profile. This might be due to a connection issue or missing permissions.
-          </p>
-          <button
-            onClick={() => logout()}
-            className="w-full bg-white text-black py-3 rounded-lg font-bold hover:bg-white/90 transition-all"
-          >
-            Sign Out & Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
+  if (!authStatus) {
     return (
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        {/* Background Glows */}
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/10 blur-[120px] rounded-full" />
         <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-600/10 blur-[120px] rounded-full" />
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-md w-full glass-card p-10 glow relative z-10"
@@ -186,15 +157,23 @@ export default function App() {
               The next generation of medical practice management. Intelligent, seamless, and patient-focused.
             </p>
           </div>
-          
-          <button
-            onClick={handleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 px-6 rounded-xl font-bold hover:bg-white/90 transition-all active:scale-[0.98] shadow-xl"
-          >
-            <LogIn className="w-5 h-5" />
-            Sign in with Google
-          </button>
-          
+
+          <div className="space-y-3">
+            <button
+              onClick={handleLogin}
+              className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 px-6 rounded-xl font-bold hover:bg-white/90 transition-all active:scale-[0.98] shadow-xl"
+            >
+              <LogIn className="w-5 h-5" />
+              Sign in with Google
+            </button>
+            <button
+              onClick={() => navigate('/signup')}
+              className="w-full flex items-center justify-center gap-3 bg-blue-600/10 text-blue-400 border border-blue-500/20 py-4 px-6 rounded-xl font-bold hover:bg-blue-600/20 transition-all"
+            >
+              Sign up with Email
+            </button>
+          </div>
+
           <div className="mt-8 pt-8 border-t border-white/5 text-center">
             <p className="text-[10px] text-text/30 uppercase tracking-[0.2em] font-bold">
               Powered by Gemini 3.1 Pro
@@ -209,90 +188,45 @@ export default function App() {
     <Layout
       doctor={doctor}
       onLogout={handleLogout}
-      currentView={view as AppView}
-      setView={setView as (v: AppView) => void}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        appointmentCount={appointmentCount}
-      >
+      currentView={view}
+      setView={setView}
+      theme={theme}
+      toggleTheme={toggleTheme}
+      appointmentCount={appointmentCount}
+    >
       <AnimatePresence mode="wait">
         {view === 'dashboard' && (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="flex-1"
-          >
-            <DoctorDashboard 
-              doctor={doctor!} 
-              onAskAura={() => setView('assistant')} 
-            />
+          <motion.div key="dashboard" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex-1">
+            <DoctorDashboard doctor={doctor!} onAskAura={() => setView('assistant')} />
           </motion.div>
         )}
         {view === 'assistant' && (
-          <motion.div
-            key="assistant"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="flex-1"
-          >
+          <motion.div key="assistant" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1">
             <AIAssistant doctor={doctor!} />
           </motion.div>
         )}
         {view === 'calendar' && (
-          <motion.div
-            key="calendar"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex-1"
-          >
-            <CalendarView doctor={doctor!} googleToken={googleToken} onReauth={handleGoogleReauth} />
+          <motion.div key="calendar" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
+            <CalendarView doctor={doctor!} googleToken={googleToken} onReauth={handleLogout} />
           </motion.div>
         )}
         {view === 'patients' && (
-          <motion.div
-            key="patients"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex-1"
-          >
+          <motion.div key="patients" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
             <PatientsView doctor={doctor!} />
           </motion.div>
         )}
         {view === 'settings' && (
-          <motion.div
-            key="settings"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex-1"
-          >
+          <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
             <SettingsView doctor={doctor!} onDoctorUpdate={(updated) => setDoctor(updated)} />
           </motion.div>
         )}
         {view === 'collab' && (
-          <motion.div
-            key="collab"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex-1"
-          >
+          <motion.div key="collab" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
             <CollabDashboard />
           </motion.div>
         )}
         {view === 'missionhq' && (
-          <motion.div
-            key="missionhq"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="flex-1"
-          >
+          <motion.div key="missionhq" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="flex-1">
             <MissionHQ />
           </motion.div>
         )}

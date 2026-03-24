@@ -44,6 +44,9 @@ export const recordUsage = mutation({
 export const getSummary = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.userId) throw new Error("Unauthorized");
     const records = await ctx.db
       .query("tokenUsage")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -81,6 +84,9 @@ export const getSummary = query({
 export const getHistory = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    if (identity.subject !== args.userId) throw new Error("Unauthorized");
     const records = await ctx.db
       .query("tokenUsage")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
