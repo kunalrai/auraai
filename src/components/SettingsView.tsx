@@ -8,8 +8,21 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const FREE_MODELS = [
+  { id: "z-ai/glm-4.5-air:free",                   label: "GLM-4.5 Air (Z-AI)" },
+  { id: "stepfun/step-3.5-flash:free",              label: "Step-3.5 Flash (Stepfun)" },
+  { id: "nvidia/nemotron-3-super-120b-a12b:free",   label: "Nemotron-3 Super 120B (NVIDIA)" },
+  { id: "arcee-ai/trinity-large-preview:free",      label: "Trinity Large Preview (Arcee AI)" },
+  { id: "nvidia/nemotron-3-nano-30b-a3b:free",      label: "Nemotron-3 Nano 30B (NVIDIA)" },
+  { id: "qwen/qwen3-next-80b-a3b-instruct:free",    label: "Qwen3-Next 80B Instruct (Alibaba)" },
+  { id: "minimax/minimax-m2.5:free",                label: "MiniMax M2.5 (MiniMax)" },
+  { id: "qwen/qwen3-coder:free",                    label: "Qwen3-Coder (Alibaba)" },
+  { id: "openai/gpt-oss-120b:free",                 label: "GPT-OSS 120B (OpenAI)" },
+];
 
 interface SettingsViewProps {
   doctor: Doctor;
@@ -323,18 +336,35 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
           <Cpu className="w-5 h-5 text-blue-400" />
           AI Model
         </h3>
-        <p className="text-xs text-muted-foreground">Choose which AI model Aura uses for chat and appointment booking. Enter any OpenRouter-compatible model string.</p>
+        <p className="text-xs text-muted-foreground">Choose which AI model Aura uses for chat and appointment booking.</p>
         <div className="space-y-3">
-          <Input
-            value={modelInput}
-            onChange={e => setModelInput(e.target.value)}
-            placeholder="e.g. gemini-3-flash-preview, z-ai/glm-4.5-air:free"
-            className="max-w-md"
-          />
+          <Select value={modelInput || 'gemini-3-flash-preview'} onValueChange={setModelInput}>
+            <SelectTrigger className="max-w-md">
+              <SelectValue placeholder="Select a model..." />
+            </SelectTrigger>
+            <SelectContent>
+              {FREE_MODELS.map(model => (
+                <SelectItem key={model.id} value={model.id}>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{model.label}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{model.id}</span>
+                  </div>
+                </SelectItem>
+              ))}
+              {modelInput && !FREE_MODELS.find(m => m.id === modelInput) && (
+                <SelectItem value={modelInput}>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Custom Model</span>
+                    <span className="text-xs text-muted-foreground font-mono">{modelInput}</span>
+                  </div>
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
           <div className="flex items-center gap-3">
             <Button
               onClick={saveAiModelFn}
-              disabled={savingModel || !modelInput.trim()}
+              disabled={savingModel || !modelInput?.trim()}
               className="bg-blue-600 hover:bg-blue-500"
             >
               {savingModel ? 'Saving...' : 'Save Model'}
