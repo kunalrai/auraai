@@ -38,8 +38,8 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
   const [modelInput, setModelInput] = useState('');
   const [savingModel, setSavingModel] = useState(false);
 
-  const usageSummary = useQuery(api.tokenUsage.getSummary, { userId: doctor.uid });
-  const usageHistory = useQuery(api.tokenUsage.getHistory, { userId: doctor.uid });
+  const currentPeriodUsage = useQuery(api.billing.getMyCurrentPeriod);
+  const usageHistory = useQuery(api.billing.getMyUsage);
 
   const commSummary = useQuery(api.commLog.getSummary, { doctorId: doctor.uid });
   const [commTypeFilter, setCommTypeFilter] = useState<string>("ALL");
@@ -244,7 +244,7 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
         </div>
       </motion.div>
 
-      {/* Token Usage */}
+      {/* Billing Period Usage */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -253,61 +253,62 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
       >
         <h3 className="text-lg font-display font-bold text-foreground/90 flex items-center gap-3">
           <Zap className="w-5 h-5 text-yellow-400" />
-          AI Token Usage
+          Usage This Month {currentPeriodUsage?.billingPeriod ?? ""}
         </h3>
 
-        {usageSummary ? (
-          <>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white/5 rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">{usageSummary.totalToday.toLocaleString()}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Tokens Today</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">{usageSummary.totalMonth.toLocaleString()}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Tokens This Month</p>
-              </div>
-              <div className="bg-white/5 rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">{usageSummary.totalAll.toLocaleString()}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Total All Time</p>
-              </div>
+        {currentPeriodUsage ? (
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white/5 rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-foreground">{currentPeriodUsage.smsSent}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                <MessageSquare className="w-3 h-3" /> SMS Sent
+              </p>
             </div>
-
-            {usageSummary.byModel.length > 0 && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">By Model</p>
-                <div className="space-y-1">
-                  {usageSummary.byModel.map(m => (
-                    <div key={m.model} className="flex justify-between items-center text-sm">
-                      <code className="text-muted-foreground text-xs">{m.model}</code>
-                      <span className="text-foreground font-bold">{m.tokens.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {usageHistory && usageHistory.length > 0 && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Recent Requests</p>
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {usageHistory.map((r, i) => (
-                    <div key={i} className="flex justify-between items-center text-xs">
-                      <div>
-                        <code className="text-muted-foreground">{r.model}</code>
-                        <span className="text-muted-foreground/50 ml-2">
-                          {new Date(r.createdAt).toLocaleString()}
-                        </span>
-                      </div>
-                      <span className="text-foreground font-bold">{r.totalTokens.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+            <div className="bg-white/5 rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-foreground">{currentPeriodUsage.callsMade}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                <PhoneCall className="w-3 h-3" /> Calls Made
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-foreground">{currentPeriodUsage.tokenTotal.toLocaleString()}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                <Cpu className="w-3 h-3" /> AI Tokens
+              </p>
+            </div>
+          </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No usage data yet. Start a conversation with Aura to see your token consumption.</p>
+          <p className="text-sm text-muted-foreground">No usage data for this period yet.</p>
+        )}
+
+        {usageHistory && usageHistory.length > 0 && (
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Billing History</p>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground pb-2 font-bold">Period</th>
+                  <th className="text-right text-[10px] uppercase tracking-widest text-muted-foreground pb-2 font-bold">SMS</th>
+                  <th className="text-right text-[10px] uppercase tracking-widest text-muted-foreground pb-2 font-bold">Calls</th>
+                  <th className="text-right text-[10px] uppercase tracking-widest text-muted-foreground pb-2 font-bold">AI Tokens</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {usageHistory.map((row: any) => (
+                  <tr key={row.billingPeriod} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="py-2 text-foreground font-medium">{row.billingPeriod}</td>
+                    <td className="py-2 text-right text-muted-foreground">{row.smsSent}</td>
+                    <td className="py-2 text-right text-muted-foreground">{row.callsMade}</td>
+                    <td className="py-2 text-right text-foreground font-bold">{row.tokenTotal.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {(!usageHistory || usageHistory.length === 0) && (
+          <p className="text-sm text-muted-foreground">No billing history yet. Usage will appear here as you use Aura.</p>
         )}
       </motion.div>
 
