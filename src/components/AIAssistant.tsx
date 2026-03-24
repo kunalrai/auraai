@@ -26,8 +26,9 @@ export function AIAssistant({ doctor }: AssistantProps) {
 
   const generateUploadUrl = useMutation(api.settings.generateUploadUrl);
   const chatAction = useAction(api.ai.chat);
+  const parsePrescriptionAction = useAction(api.patients.parsePrescription);
 
-  const [selectedFile, setSelectedFile] = useState<{ name: string; mimeType: string; data: string } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<{ name: string; mimeType: string; data: string; storageId?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -102,9 +103,21 @@ export function AIAssistant({ doctor }: AssistantProps) {
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const base64 = (reader.result as string).split(',')[1];
-      setSelectedFile({ name: file.name, mimeType: file.type, data: base64 });
+      const uploadUrl = await generateUploadUrl({});
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: bytes,
+      });
+      const { storageId } = await uploadRes.json() as { storageId: string };
+      setSelectedFile({ name: file.name, mimeType: file.type, data: base64, storageId });
     };
     reader.readAsDataURL(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -205,49 +218,76 @@ export function AIAssistant({ doctor }: AssistantProps) {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isTyping || !doctor?.uid) return;
+    if (isTyping || !doctor?.uid) return;
+
+    const hasFile = selectedFile && selectedFile.storageId;
+
+    if (!hasFile && !input.trim()) return;
 
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    if (!hasFile) {
+      setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    }
     setIsTyping(true);
 
     try {
-      const currentDateTime = new Date().toISOString();
-      
-      const booking = await parseBookingRequest(userMessage, currentDateTime);
-      
-      if (booking) {
-        const availWarning = checkAvailability(booking);
-        if (availWarning) {
+      if (hasFile && selectedFile) {
+        const result = await parsePrescriptionAction({
+          storageId: selectedFile.storageId!,
+          doctorId: doctor.uid,
+        });
+        if (result.success) {
+          const reminderNote = result.reminderDate
+            ? ` Follow-up reminder set for ${new Date(result.reminderDate).toLocaleDateString()}.`
+            : ' No follow-up reminder detected.';
           setMessages(prev => [...prev, {
             role: 'assistant',
-            content: `⚠️ Outside working hours: ${availWarning}. The requested time for ${booking.patientName} falls outside your configured schedule. Please choose a different time.`
+            content: `Patient ${result.patientName} saved.${reminderNote}`
           }]);
-          return;
-        }
-
-        if (booking.recurrence) {
-          await writeRecurringSeries(booking);
         } else {
-          const conflict = findConflict(booking);
-          if (conflict) {
-            setPendingBooking(booking);
-            setConflictWith(conflict);
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: `⚠️ Conflict detected! ${conflict.patientName} is already scheduled at ${conflict.startTime.toDate().toLocaleString()} — within 30 minutes of the requested slot.\n\nDo you want to override and schedule anyway, or cancel?`
-            }]);
-          } else {
-            await writeAppointment(booking);
-          }
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `Could not process prescription: ${result.error}`
+          }]);
         }
       } else {
-        const result = await chatAction({
-          messages: [...messages, { role: 'user', content: userMessage }],
-          userId: doctor.uid ?? "",
-        });
-        setMessages(prev => [...prev, { role: 'assistant', content: result.text }]);
+        const currentDateTime = new Date().toISOString();
+        
+        const booking = await parseBookingRequest(userMessage, currentDateTime);
+        
+        if (booking) {
+          const availWarning = checkAvailability(booking);
+          if (availWarning) {
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: `⚠️ Outside working hours: ${availWarning}. The requested time for ${booking.patientName} falls outside your configured schedule. Please choose a different time.`
+            }]);
+            return;
+          }
+
+          if (booking.recurrence) {
+            await writeRecurringSeries(booking);
+          } else {
+            const conflict = findConflict(booking);
+            if (conflict) {
+              setPendingBooking(booking);
+              setConflictWith(conflict);
+              setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: `⚠️ Conflict detected! ${conflict.patientName} is already scheduled at ${conflict.startTime.toDate().toLocaleString()} — within 30 minutes of the requested slot.\n\nDo you want to override and schedule anyway, or cancel?`
+              }]);
+            } else {
+              await writeAppointment(booking);
+            }
+          }
+        } else {
+          const result = await chatAction({
+            messages: [...messages, { role: 'user', content: userMessage }],
+            userId: doctor.uid ?? "",
+          });
+          setMessages(prev => [...prev, { role: 'assistant', content: result.text }]);
+        }
       }
     } catch (error) {
       console.error("Assistant error:", error);
@@ -402,7 +442,7 @@ export function AIAssistant({ doctor }: AssistantProps) {
             />
             <button
               type="submit"
-              disabled={isTyping || !input.trim()}
+              disabled={isTyping || (!input.trim() && !selectedFile?.storageId)}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-3 bg-white text-black rounded-xl font-bold hover:bg-white/90 transition-all disabled:opacity-20 disabled:grayscale"
             >
               <Send className="w-5 h-5" />

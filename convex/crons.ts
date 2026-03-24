@@ -1,5 +1,5 @@
 import { cronJobs } from "convex/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 
 const crons = cronJobs();
 
@@ -21,6 +21,13 @@ crons.interval(
   "riya-message-listener",
   { minutes: 1 },
   internal.collab.riyaWatchMessages,
+  {}
+);
+
+crons.cron(
+  "patient-reminder-dispatch",
+  "30 3 * * *",
+  api.reminders.dispatch,
   {}
 );
 
