@@ -31,4 +31,18 @@ crons.cron(
   {}
 );
 
+crons.cron(
+  "billing-reconcile-nightly",
+  "0 1 * * *",
+  internal.billing.reconcileCurrentPeriod,
+  {}
+);
+
+crons.cron(
+  "billing-stripe-push",
+  "0 6 1 * *",
+  internal.billing.pushToStripe,
+  {}
+);
+
 export default crons;

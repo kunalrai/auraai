@@ -227,3 +227,56 @@ export const backfillSetRow = internalMutation({
     }
   },
 });
+
+export const reconcileCurrentPeriod = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const period = getCurrentBillingPeriod(Date.now());
+
+    const allLogs = await ctx.db.query("commLog").collect();
+    const monthLogs = allLogs.filter((l) => getCurrentBillingPeriod(l.sentAt) === period);
+
+    const byDoctor = new Map<string, { sms: number; calls: number }>();
+    for (const log of monthLogs) {
+      if (!byDoctor.has(log.doctorId)) byDoctor.set(log.doctorId, { sms: 0, calls: 0 });
+      const d = byDoctor.get(log.doctorId)!;
+      if (log.type === "SMS" && log.status === "SENT") d.sms++;
+      if (log.type === "CALL" && (log.status === "SENT" || log.status === "ANSWERED")) d.calls++;
+    }
+
+    for (const [doctorId, counts] of byDoctor.entries()) {
+      const row = await ctx.db
+        .query("usageSummary")
+        .withIndex("by_doctor_period", (q) =>
+          q.eq("doctorId", doctorId).eq("billingPeriod", period)
+        )
+        .first();
+
+      if (row) {
+        await ctx.db.patch(row._id, {
+          smsSent: counts.sms,
+          callsMade: counts.calls,
+          lastUpdatedAt: Date.now(),
+        });
+      }
+    }
+  },
+});
+
+export const pushToStripe = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ pending: number; period: string }> => {
+    const period = getCurrentBillingPeriod(Date.now());
+    const allRows = await ctx.runQuery(api.billing.scanAllUsageSummary, {}) as { stripeReportedAt?: number }[];
+    const pending = allRows.filter((r) => !r.stripeReportedAt);
+    console.log(`Stripe push not yet configured. ${pending.length} rows pending for period ${period}`);
+    return { pending: pending.length, period };
+  },
+});
+
+export const scanAllUsageSummary = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("usageSummary").collect();
+  },
+});
