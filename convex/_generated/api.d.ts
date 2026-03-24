@@ -8,11 +8,16 @@
  * @module
  */
 
+import type * as ai from "../ai.js";
 import type * as collab from "../collab.js";
+import type * as commLog from "../commLog.js";
 import type * as crons from "../crons.js";
 import type * as goals from "../goals.js";
 import type * as messages from "../messages.js";
+import type * as patients from "../patients.js";
+import type * as reminders from "../reminders.js";
 import type * as settings from "../settings.js";
+import type * as tokenUsage from "../tokenUsage.js";
 
 import type {
   ApiFromModules,
@@ -21,11 +26,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  ai: typeof ai;
   collab: typeof collab;
+  commLog: typeof commLog;
   crons: typeof crons;
   goals: typeof goals;
   messages: typeof messages;
+  patients: typeof patients;
+  reminders: typeof reminders;
   settings: typeof settings;
+  tokenUsage: typeof tokenUsage;
 }>;
 
 /**

@@ -88,4 +88,16 @@ export default defineSchema({
     responseCode: v.optional(v.number()),
     error: v.optional(v.string()),
   }),
+
+  commLog: defineTable({
+    doctorId: v.string(),
+    patientId: v.id("patients"),
+    patientName: v.string(),
+    patientPhone: v.string(),
+    type: v.union(v.literal("SMS"), v.literal("CALL")),
+    status: v.union(v.literal("SENT"), v.literal("FAILED"), v.literal("ANSWERED"), v.literal("NO_ANSWER")),
+    sentAt: v.number(),
+    message: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }).index("by_doctor", ["doctorId"]).index("by_patient", ["patientId"]),
 });

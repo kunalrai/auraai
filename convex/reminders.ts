@@ -1,11 +1,18 @@
 import { action } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import type { GenericId } from "convex/values";
+
+interface PendingReminder {
+  _id: GenericId<"reminders">;
+  patientId: GenericId<"patients">;
+  patientName: string;
+  patientPhone: string;
+}
 
 export const dispatch = action({
   args: {},
   handler: async (ctx): Promise<{ sent: number; failed: number; message: string }> => {
-    const pending: { _id: GenericId<"reminders">; patientName: string; patientPhone: string }[] = await ctx.runQuery(api.patients.listPendingReminders, {});
+    const pending: PendingReminder[] = await ctx.runQuery(api.patients.listPendingReminders, {});
 
     if (!pending || pending.length === 0) {
       return { sent: 0, failed: 0, message: "No pending reminders." };
@@ -30,7 +37,9 @@ export const dispatch = action({
     let failed = 0;
 
     for (const reminder of pending) {
-      const message = `Hi ${reminder.patientName}, this is a reminder from your doctor. Your follow-up visit is due today. Please call the clinic to book your appointment.`;
+      const patient = await ctx.runQuery(api.patients.getById, { patientId: reminder.patientId });
+      const doctorId = patient?.doctorId ?? "unknown";
+      const smsMessage = `Hi ${reminder.patientName}, this is a reminder from your doctor. Your follow-up visit is due today. Please call the clinic to book your appointment.`;
 
       try {
         const response = await fetch(
@@ -44,7 +53,7 @@ export const dispatch = action({
             body: new URLSearchParams({
               To: reminder.patientPhone,
               From: fromNumber,
-              Body: message,
+              Body: smsMessage,
             }),
           }
         );
@@ -55,6 +64,16 @@ export const dispatch = action({
             responseCode: response.status,
             error: undefined,
           });
+          await ctx.runMutation(api.commLog.record, {
+            doctorId,
+            patientId: reminder.patientId,
+            patientName: reminder.patientName,
+            patientPhone: reminder.patientPhone,
+            type: "SMS",
+            status: "SENT",
+            message: smsMessage,
+            error: undefined,
+          });
           sent++;
         } else {
           const errorText = await response.text();
@@ -62,12 +81,33 @@ export const dispatch = action({
             reminderId: reminder._id,
             error: `HTTP ${response.status}: ${errorText}`,
           });
+          await ctx.runMutation(api.commLog.record, {
+            doctorId,
+            patientId: reminder.patientId,
+            patientName: reminder.patientName,
+            patientPhone: reminder.patientPhone,
+            type: "SMS",
+            status: "FAILED",
+            message: smsMessage,
+            error: `HTTP ${response.status}: ${errorText}`,
+          });
           failed++;
         }
       } catch (err: any) {
+        const errMsg = err?.message ?? "unknown error";
         await ctx.runMutation(api.patients.markReminderFailed, {
           reminderId: reminder._id,
-          error: err?.message ?? "unknown error",
+          error: errMsg,
+        });
+        await ctx.runMutation(api.commLog.record, {
+          doctorId,
+          patientId: reminder.patientId,
+          patientName: reminder.patientName,
+          patientPhone: reminder.patientPhone,
+          type: "SMS",
+          status: "FAILED",
+          message: smsMessage,
+          error: errMsg,
         });
         failed++;
       }

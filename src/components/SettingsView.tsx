@@ -3,7 +3,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import { Doctor } from '../types.ts';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Phone, Stethoscope, Building2, CheckCircle, Clock, Cpu, Zap } from 'lucide-react';
+import { User, Phone, Stethoscope, Building2, CheckCircle, Clock, Cpu, Zap, MessageSquare, PhoneCall, AlertCircle, TrendingUp, Filter } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,15 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
 
   const usageSummary = useQuery(api.tokenUsage.getSummary, { userId: doctor.uid });
   const usageHistory = useQuery(api.tokenUsage.getHistory, { userId: doctor.uid });
+
+  const commSummary = useQuery(api.commLog.getSummary, { doctorId: doctor.uid });
+  const [commTypeFilter, setCommTypeFilter] = useState<string>("ALL");
+  const [commStatusFilter, setCommStatusFilter] = useState<string>("ALL");
+  const commHistory = useQuery(api.commLog.getHistory, {
+    doctorId: doctor.uid,
+    type: commTypeFilter === "ALL" ? undefined : commTypeFilter as "SMS" | "CALL",
+    status: commStatusFilter === "ALL" ? undefined : commStatusFilter as "SENT" | "FAILED" | "ANSWERED" | "NO_ANSWER",
+  });
 
   React.useEffect(() => {
     if (aiModel !== undefined) {
@@ -334,6 +343,137 @@ export function SettingsView({ doctor, onDoctorUpdate }: SettingsViewProps) {
             </span>
           </div>
         </div>
+      </motion.div>
+
+      {/* Communications Analytics */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="glass-card p-8 space-y-6"
+      >
+        <h3 className="text-lg font-display font-bold text-foreground/90 flex items-center gap-3">
+          <MessageSquare className="w-5 h-5 text-teal-400" />
+          Communications Analytics
+        </h3>
+
+        {commSummary ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="bg-white/5 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{commSummary.totalSms}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                  <MessageSquare className="w-3 h-3" /> Total SMS
+                </p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{commSummary.totalCalls}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                  <PhoneCall className="w-3 h-3" /> Total Calls
+                </p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{commSummary.todayCount}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> Sent Today
+                </p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{commSummary.thisMonthCount}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> This Month
+                </p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-green-400">{commSummary.totalSent}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                  <CheckCircle className="w-3 h-3" /> Total Sent
+                </p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 text-center">
+                <p className="text-2xl font-bold text-red-400">{commSummary.totalFailed}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> Total Failed
+                </p>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Type:</span>
+                {["ALL", "SMS", "CALL"].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setCommTypeFilter(t)}
+                    className={`text-xs px-3 py-1 rounded-full transition-all ${commTypeFilter === t ? "bg-teal-500/20 text-teal-400 border border-teal-500/30" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Status:</span>
+                {["ALL", "SENT", "FAILED", "ANSWERED", "NO_ANSWER"].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setCommStatusFilter(s)}
+                    className={`text-xs px-3 py-1 rounded-full transition-all ${commStatusFilter === s ? "bg-teal-500/20 text-teal-400 border border-teal-500/30" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {s.replace("_", " ")}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* History Table */}
+            {commHistory && commHistory.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground pb-2 font-bold">Date</th>
+                      <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground pb-2 font-bold">Patient</th>
+                      <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground pb-2 font-bold">Phone</th>
+                      <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground pb-2 font-bold">Type</th>
+                      <th className="text-left text-[10px] uppercase tracking-widest text-muted-foreground pb-2 font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {commHistory.map((entry: any, i: number) => (
+                      <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-2 text-muted-foreground text-xs">
+                          {new Date(entry.sentAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        </td>
+                        <td className="py-2 text-foreground font-medium text-xs">{entry.patientName}</td>
+                        <td className="py-2 text-muted-foreground text-xs font-mono">{entry.patientPhone}</td>
+                        <td className="py-2">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${entry.type === "SMS" ? "bg-blue-500/10 text-blue-400" : "bg-purple-500/10 text-purple-400"}`}>
+                            {entry.type}
+                          </span>
+                        </td>
+                        <td className="py-2">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            entry.status === "SENT" || entry.status === "ANSWERED"
+                              ? "bg-green-500/10 text-green-400"
+                              : "bg-red-500/10 text-red-400"
+                          }`}>
+                            {entry.status.replace("_", " ")}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No communications logged yet. SMS reminders sent via Twilio will appear here.</p>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Loading communications data...</p>
+        )}
       </motion.div>
 
       {/* Success Toast */}
