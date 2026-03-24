@@ -162,17 +162,17 @@ export default function App() {
 
           <div className="space-y-3">
             <button
-              onClick={handleLogin}
-              className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 px-6 rounded-xl font-bold hover:bg-white/90 transition-all active:scale-[0.98] shadow-xl"
+              onClick={() => navigate('/signup')}
+              className="w-full flex items-center justify-center gap-3 bg-blue-600 text-white py-4 px-6 rounded-xl font-bold hover:bg-blue-500 transition-all shadow-xl"
             >
               <LogIn className="w-5 h-5" />
-              Sign in with Google
+              Sign in with Email
             </button>
             <button
               onClick={() => navigate('/signup')}
               className="w-full flex items-center justify-center gap-3 bg-blue-600/10 text-blue-400 border border-blue-500/20 py-4 px-6 rounded-xl font-bold hover:bg-blue-600/20 transition-all"
             >
-              Sign up with Email
+              Create Account
             </button>
           </div>
 
