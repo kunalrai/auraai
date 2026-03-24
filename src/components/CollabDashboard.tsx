@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Circle, Loader2, MessageSquare, Zap, Bot, User, GitBranch, Radar, Calendar, Sun, Moon, SendHorizonal, LayoutDashboard, Menu } from 'lucide-react';
@@ -39,10 +39,13 @@ export function CollabDashboard() {
   const messages = useQuery(api.collab.listMessages);
   const agents   = useQuery(api.collab.getAgentStatus);
   const postMessage = useMutation(api.collab.postMessage);
+  const planGoal = useAction(api.collab.planGoal);
 
   const [chatInput, setChatInput] = useState('');
   const [sending, setSending]     = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem('theme') as 'dark' | 'light') || 'dark');
+  const [planResult, setPlanResult] = useState<{ goals: { number: number; title: string }[] } | null>(null);
+  const [planError, setPlanError] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
@@ -239,30 +242,69 @@ export function CollabDashboard() {
         <p className="text-muted-foreground mt-1">Live view of Michel & Riya's sprint</p>
       </div>
 
-      {/* Michel Chat Input */}
+      {/* Michel AI Goal Planner */}
       <Card className="p-4">
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
           <div className="w-6 h-6 rounded-full bg-purple-600/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
             <Bot className="w-3.5 h-3.5 text-purple-400" />
           </div>
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Message Michel</span>
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Give new goal to plan?</span>
         </div>
-        <form onSubmit={handleSend} className="flex gap-3">
-          <Input
-            type="text"
+        <p className="text-xs text-muted-foreground/60 mb-3">Describe what you want built — Michel will plan and queue it.</p>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          if (!chatInput.trim()) return;
+          setSending(true);
+          setPlanResult(null);
+          setPlanError(null);
+          try {
+            const result = await planGoal({ rawInput: chatInput.trim() });
+            setPlanResult(result);
+            setChatInput('');
+            setTimeout(() => setPlanResult(null), 6000);
+          } catch (err: any) {
+            setPlanError(err.message ?? "Michel failed to plan. Try again.");
+          } finally {
+            setSending(false);
+          }
+        }} className="flex flex-col gap-3">
+          <textarea
             value={chatInput}
             onChange={e => setChatInput(e.target.value)}
-            placeholder="Say something to Michel..."
-            className="flex-1"
+            placeholder="e.g. Add a dark mode toggle to the settings page..."
+            rows={3}
+            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
           />
           <Button
             type="submit"
             disabled={sending || !chatInput.trim()}
-            className="shrink-0 bg-purple-600 hover:bg-purple-500"
+            className="shrink-0 bg-purple-600 hover:bg-purple-500 self-end"
           >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizonal className="w-4 h-4" />}
+            {sending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Michel is planning...
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4 mr-2" />
+                Plan it
+              </>
+            )}
           </Button>
         </form>
+        {planResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 p-3 rounded-lg bg-green-600/15 border border-green-500/30 text-green-400 text-sm"
+          >
+            Michel created {planResult.goals.length} goal(s): {planResult.goals.map(g => `#${g.number} ${g.title}`).join(', ')}
+          </motion.div>
+        )}
+        {planError && (
+          <p className="mt-3 text-sm text-red-400">{planError}</p>
+        )}
       </Card>
 
       {/* Stats row */}

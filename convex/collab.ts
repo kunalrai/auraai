@@ -1,4 +1,4 @@
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -690,5 +690,123 @@ export const activateNext = internalMutation({
       author: "Michel",
       body: `Goal ${next.number} is now ACTIVE: **${next.title}**. ${next.spec} Ship it, ${assignee}!`,
     });
+  },
+});
+
+// ── Goal Planning (Michel AI) ────────────────────────────────────────────────
+
+export const insertMessageInternal = internalMutation({
+  args: { author: v.string(), body: v.string() },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("messages", { author: args.author, body: args.body });
+  },
+});
+
+export const addGoalInternal = internalMutation({
+  args: { title: v.string(), spec: v.string() },
+  handler: async (ctx, args) => {
+    const last = await ctx.db.query("goals").withIndex("by_number").order("desc").first();
+    const number = (last?.number ?? 0) + 1;
+    const id = await ctx.db.insert("goals", {
+      number,
+      title: args.title,
+      spec: args.spec,
+      status: "QUEUED",
+    });
+    return number;
+  },
+});
+
+export const planGoalInternal = action({
+  args: { rawInput: v.string() },
+  handler: async (ctx, args): Promise<{ goals: { number: number; title: string }[] }> => {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      throw new Error("OPENROUTER_API_KEY not configured");
+    }
+
+    const MICHEL_SYSTEM_PROMPT = `You are Michel, a senior feature planner for a software team. Given a raw feature request, produce a JSON array of independent developer-ready goals. Rules: (1) If the request is small (1 clear task), return exactly 1 goal. (2) If large or contains multiple independent parts, split into 2-5 goals. Each goal MUST have: title (string max 60 chars), spec (string with file names, function names, expected behavior, edge cases — min 80 words). Return ONLY a valid JSON array. No markdown. Example: [{"title": "...", "spec": "..."}]`;
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-4o-mini",
+        messages: [
+          { role: "system", content: MICHEL_SYSTEM_PROMPT },
+          { role: "user", content: args.rawInput },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+    const content = data.choices?.[0]?.message?.content ?? "";
+    
+    let goals: { title: string; spec: string }[];
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        goals = parsed;
+      } else if (parsed.goals && Array.isArray(parsed.goals)) {
+        goals = parsed.goals;
+      } else {
+        throw new Error("Invalid response format");
+      }
+    } catch {
+      throw new Error("Failed to parse AI response as JSON");
+    }
+
+    if (goals.length === 0) {
+      throw new Error("No goals returned. Try being more specific.");
+    }
+
+    const createdGoals: { number: number; title: string }[] = [];
+    for (const goal of goals) {
+      const num = await ctx.runMutation(internal.collab.addGoalInternal, {
+        title: goal.title,
+        spec: goal.spec,
+      });
+      createdGoals.push({ number: num, title: goal.title });
+    }
+
+    const goalList = createdGoals.map(g => `#${g.number} ${g.title}`).join(", ");
+    await ctx.runMutation(internal.collab.insertMessageInternal, {
+      author: "Michel",
+      body: `Planned ${createdGoals.length} goal(s): ${goalList}. Open for any developer to claim.`,
+    });
+
+    return { goals: createdGoals };
+  },
+});
+
+export const planGoal = action({
+  args: { rawInput: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.runAction(internal.collab.planGoalInternal, { rawInput: args.rawInput });
+  },
+});
+
+export const claimOpenGoal = mutation({
+  args: { goalNumber: v.number(), worker: v.string() },
+  handler: async (ctx, args) => {
+    const goal = await ctx.db
+      .query("goals")
+      .withIndex("by_number", (q) => q.eq("number", args.goalNumber))
+      .first();
+    if (!goal) throw new Error(`Goal ${args.goalNumber} not found`);
+    if (goal.assignee) {
+      throw new Error(`Goal ${args.goalNumber} is already assigned to ${goal.assignee}`);
+    }
+    if (goal.status !== "QUEUED") {
+      throw new Error(`Goal ${args.goalNumber} is not QUEUED (current: ${goal.status})`);
+    }
+    await ctx.db.patch(goal._id, { status: "WORKING", worker: args.worker, assignee: args.worker });
   },
 });
