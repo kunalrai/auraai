@@ -633,7 +633,7 @@ export function LandingPage({ onLogin }: LandingPageProps) {
           <span className="font-display font-bold text-sm">Aura AI</span>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Built for doctors. Powered by OpenRouter.
+          Built for doctors. Powered by AI.
         </p>
       </footer>
 
